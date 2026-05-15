@@ -1094,7 +1094,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f2e422657419200479d4a20d5f6410f4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  snapDistance: 0.08
+  snapDistance: 0.04
 --- !u!64 &655557660 stripped
 MeshCollider:
   m_CorrespondingSourceObject: {fileID: 3451118302482216456, guid: 41eee698b992acd4abbec1bfd6c29433,
@@ -1680,7 +1680,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f2e422657419200479d4a20d5f6410f4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  snapDistance: 0.08
+  snapDistance: 0.04
 --- !u!64 &862119408 stripped
 MeshCollider:
   m_CorrespondingSourceObject: {fileID: 3451118302482216456, guid: 41eee698b992acd4abbec1bfd6c29433,
@@ -2417,7 +2417,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f2e422657419200479d4a20d5f6410f4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  snapDistance: 0.08
+  snapDistance: 0.04
 --- !u!64 &1203026686 stripped
 MeshCollider:
   m_CorrespondingSourceObject: {fileID: 3451118302482216456, guid: 41eee698b992acd4abbec1bfd6c29433,
@@ -3426,7 +3426,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f2e422657419200479d4a20d5f6410f4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  snapDistance: 0.08
+  snapDistance: 0.04
 --- !u!64 &1651435612 stripped
 MeshCollider:
   m_CorrespondingSourceObject: {fileID: 3451118302482216456, guid: 41eee698b992acd4abbec1bfd6c29433,
