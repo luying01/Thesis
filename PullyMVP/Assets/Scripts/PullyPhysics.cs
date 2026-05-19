@@ -1,18 +1,16 @@
 using UnityEngine;
-
 public class PulleyPhysics : MonoBehaviour
 {
     public GameObject weightChainLeft;
     public GameObject weightChainRight;
     public Transform slotLeft;
     public Transform slotRight;
-    public float totalRopeLength = 2f; // 绳子总长度固定
+    public float totalRopeLength = 2f;
     public Transform hookLeft;
     public Transform hookRight;
-
-    float leftLength;  // 左侧绳子当前长度
-    float rightLength; // 右侧绳子当前长度
-    float velocity = 0f;
+    public float leftLength;
+    public float rightLength;
+    public float velocity = 0f;
 
     void Start()
     {
@@ -27,17 +25,14 @@ public class PulleyPhysics : MonoBehaviour
         float massRight = weightChainRight != null ? GetChainMass(weightChainRight) : 0f;
         float g = 9.81f;
         float totalMass = massLeft + massRight;
-        Debug.Log("left: " + leftLength + " right: " + rightLength);
 
         if (totalMass == 0f)
         {
-            // 没有砝码，两侧自然下垂到绳子中点
             leftLength = Mathf.MoveTowards(leftLength, totalRopeLength * 0.5f, 0.5f * Time.fixedDeltaTime);
             rightLength = totalRopeLength - leftLength;
         }
         else
         {
-            // 阿特伍德机公式
             float acceleration = (massLeft - massRight) * g / totalMass;
             velocity += acceleration * Time.fixedDeltaTime;
             velocity = Mathf.Clamp(velocity, -2f, 2f);
@@ -63,16 +58,17 @@ public class PulleyPhysics : MonoBehaviour
         leftLength = Mathf.Clamp(leftLength, 0.05f, totalRopeLength - 0.05f);
         rightLength = totalRopeLength - leftLength;
 
-        if (weightChainLeft != null && slotLeft != null)
-            SetChainPosition(weightChainLeft, slotLeft.position + Vector3.down * leftLength);
-        if (weightChainRight != null && slotRight != null)
-            SetChainPosition(weightChainRight, slotRight.position + Vector3.down * rightLength);
-
-        Vector3 pulleyCenter = (slotLeft.position + slotRight.position) * 0.5f;
+        // 先更新Hook位置
         if (hookLeft != null)
-            hookLeft.position = new Vector3(pulleyCenter.x, pulleyCenter.y - leftLength, slotLeft.position.z);
+            hookLeft.position = new Vector3(slotLeft.position.x, slotLeft.position.y - leftLength, slotLeft.position.z);
         if (hookRight != null)
-            hookRight.position = new Vector3(pulleyCenter.x, pulleyCenter.y - rightLength, slotRight.position.z);
+            hookRight.position = new Vector3(slotRight.position.x, slotRight.position.y - rightLength, slotRight.position.z);
+
+        // 再把砝码放到Hook位置
+        if (weightChainLeft != null && hookLeft != null)
+            SetChainPosition(weightChainLeft, hookLeft.position);
+        if (weightChainRight != null && hookRight != null)
+            SetChainPosition(weightChainRight, hookRight.position);
     }
 
     float GetChainMass(GameObject topWeight)
@@ -80,14 +76,10 @@ public class PulleyPhysics : MonoBehaviour
         float total = 0f;
         Rigidbody rb = topWeight.GetComponent<Rigidbody>();
         if (rb != null) total += rb.mass;
-
-        // 遍历所有直接子物体，找下一个有Rigidbody的砝码
         foreach (Transform child in topWeight.transform)
         {
             if (child.GetComponent<Rigidbody>() != null)
-            {
                 total += GetChainMass(child.gameObject);
-            }
         }
         return total;
     }
@@ -95,7 +87,6 @@ public class PulleyPhysics : MonoBehaviour
     void SetChainPosition(GameObject topWeight, Vector3 position)
     {
         topWeight.transform.position = position;
-
         int childIndex = 0;
         foreach (Transform child in topWeight.transform)
         {

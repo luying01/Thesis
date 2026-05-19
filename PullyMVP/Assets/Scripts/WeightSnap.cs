@@ -34,8 +34,8 @@ public class WeightSnap : MonoBehaviour
     void TrySnapToHook(Transform hook, bool isLeft)
     {
         if (hook == null) return;
+        if (isSnapped) return;
         float dist = Vector3.Distance(transform.position, hook.position);
-        Debug.Log("距离 " + (isLeft ? "Left" : "Right") + ": " + dist);
         if (dist < snapDistance)
         {
             transform.position = hook.position;
@@ -44,8 +44,8 @@ public class WeightSnap : MonoBehaviour
                 pulleyPhysics.weightChainLeft = this.gameObject;
             else
                 pulleyPhysics.weightChainRight = this.gameObject;
+            pulleyPhysics.velocity = 0f;
             isSnapped = true;
-            Debug.Log("吸附到: " + (isLeft ? "Left" : "Right"));
         }
     }
 
@@ -73,10 +73,9 @@ public class WeightSnap : MonoBehaviour
     // 被抓起时取消吸附状态
     public void OnGrabbed()
     {
+        if (!isSnapped) return;
         isSnapped = false;
         transform.SetParent(null);
-
-        // 如果是链顶部，通知PulleyPhysics
         if (pulleyPhysics.weightChainLeft == this.gameObject)
             pulleyPhysics.weightChainLeft = null;
         if (pulleyPhysics.weightChainRight == this.gameObject)
