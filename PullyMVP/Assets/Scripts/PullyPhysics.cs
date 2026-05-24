@@ -13,6 +13,10 @@ public class PulleyPhysics : MonoBehaviour
     public float rightLength;
     public float velocity = 0f;
 
+    // Exposed for RopeGrab haptic feedback
+    public float massLeft = 0f;
+    public float massRight = 0f;
+
     void Start()
     {
         leftLength = totalRopeLength * 0.5f;
@@ -27,6 +31,13 @@ public class PulleyPhysics : MonoBehaviour
 
         bool leftGrabbed = ropeGrabLeft != null && ropeGrabLeft.isGrabbed;
         bool rightGrabbed = ropeGrabRight != null && ropeGrabRight.isGrabbed;
+
+        // Update mass fields every frame
+        massLeft = weightChainLeft != null ? GetChainMass(weightChainLeft) : 0f;
+        massRight = weightChainRight != null ? GetChainMass(weightChainRight) : 0f;
+
+        float g = 9.81f;
+        float totalMass = massLeft + massRight;
 
         if (leftGrabbed && rightGrabbed)
         {
@@ -56,11 +67,6 @@ public class PulleyPhysics : MonoBehaviour
         }
         else
         {
-            float massLeft = weightChainLeft != null ? GetChainMass(weightChainLeft) : 0f;
-            float massRight = weightChainRight != null ? GetChainMass(weightChainRight) : 0f;
-            float g = 9.81f;
-            float totalMass = massLeft + massRight;
-
             if (totalMass == 0f)
             {
                 leftLength = Mathf.MoveTowards(leftLength, totalRopeLength * 0.5f, 0.5f * Time.fixedDeltaTime);

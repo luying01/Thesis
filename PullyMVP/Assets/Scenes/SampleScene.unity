@@ -179,7 +179,7 @@ Transform:
   m_GameObject: {fileID: 384102686}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.92387956, z: 0, w: 0.38268343}
-  m_LocalPosition: {x: -0.75, y: 0, z: 1.1}
+  m_LocalPosition: {x: -0.552, y: 0, z: 0.78}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2088,6 +2088,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveRadius: 0.4
   pulleyPhysics: {fileID: 1144867055}
+  hapticController: {fileID: 0}
+  maxHapticAmplitude: 0.8
+  maxReferenceMass: 10
   isGrabbed: 0
 --- !u!135 &1002910131
 SphereCollider:
@@ -2219,6 +2222,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveRadius: 0.4
   pulleyPhysics: {fileID: 1144867055}
+  hapticController: {fileID: 0}
+  maxHapticAmplitude: 0.8
+  maxReferenceMass: 10
   isGrabbed: 0
 --- !u!54 &1138261962
 Rigidbody:
@@ -2444,6 +2450,8 @@ MonoBehaviour:
   leftLength: 0
   rightLength: 0
   velocity: 0
+  massLeft: 0
+  massRight: 0
 --- !u!1001 &1203026676
 PrefabInstance:
   m_ObjectHideFlags: 0

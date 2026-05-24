@@ -9,18 +9,59 @@ public class WeightSnap : MonoBehaviour
     private PulleyPhysics pulleyPhysics;
     public bool isSnapped = false;
 
+    
+    private ActionBasedController currentController = null;
+   
+
+    // Calibrated for 25g to 100g weights
+    // At min mass: amplitude 0.2, interval 0.3s
+    // At max mass: amplitude 0.7, interval 0.05s
+    private float minMass = 0.025f;
+    private float maxMass = 0.4f; // adjust if you add more weights
+    private float minAmplitude = 0.2f;
+    private float maxAmplitude = 0.7f;
+
     void Start()
     {
         grabInteractable = GetComponent<XRGrabInteractable>();
         pulleyPhysics = FindObjectOfType<PulleyPhysics>();
         grabInteractable.selectExited.AddListener(OnReleased);
-        grabInteractable.selectEntered.AddListener(args => OnGrabbed());
+        grabInteractable.selectEntered.AddListener(OnGrabbedWithArgs);
+    }
+
+    void Update()
+    {
+        // Continuous haptic while holding the weight
+        if (currentController == null) return;
+
+        Rigidbody rb = GetComponent<Rigidbody>();
+        float mass = rb != null ? rb.mass : minMass;
+
+        // Normalize mass to amplitude, calibrated for 25g to 400g
+        float t = Mathf.InverseLerp(minMass, maxMass, mass);
+        float amplitude = Mathf.Lerp(minAmplitude, maxAmplitude, t);
+        amplitude = Mathf.Clamp(amplitude, minAmplitude, maxAmplitude);
+
+        // Send every frame with short duration, same pattern as RopeGrab
+        currentController.SendHapticImpulse(amplitude, 0.1f);
     }
 
     void OnReleased(SelectExitEventArgs args)
     {
+        // Stop haptics
+        currentController = null;
+
         if (isSnapped) return;
         StartCoroutine(TrySnapDelayed());
+    }
+
+    void OnGrabbedWithArgs(SelectEnterEventArgs args)
+    {
+        // Start tracking which controller is holding this weight
+        currentController = args.interactorObject.transform
+            .GetComponentInParent<ActionBasedController>();
+
+        OnGrabbed();
     }
 
     System.Collections.IEnumerator TrySnapDelayed()
@@ -34,18 +75,14 @@ public class WeightSnap : MonoBehaviour
         TrySnapToHook(pulleyPhysics.hookRight, false);
     }
 
-    // Calculate world position so that this weight's Top aligns with the target point
     Vector3 GetPositionForTopAlignment(Vector3 targetWorldPos, Quaternion weightRotation)
     {
         Transform topPoint = transform.Find("weight_AttachPoint_Top");
         if (topPoint == null)
             return targetWorldPos + Vector3.down * 0.029f;
 
-        // Local offset from weight center to Top point
         Vector3 localTopOffset = topPoint.localPosition;
-        // Rotate the offset by the weight's intended rotation
         Vector3 worldTopOffset = weightRotation * localTopOffset;
-        // Weight center = target - worldTopOffset
         return targetWorldPos - worldTopOffset;
     }
 
@@ -59,7 +96,6 @@ public class WeightSnap : MonoBehaviour
         float dist = Vector3.Distance(transform.position, hook.position);
         if (dist < snapDistance)
         {
-            // Hook: no rotation, Top aligns with hook
             Quaternion targetRotation = Quaternion.identity;
             Vector3 targetPosition = GetPositionForTopAlignment(hook.position, targetRotation);
 
@@ -92,10 +128,8 @@ public class WeightSnap : MonoBehaviour
             float dist = Vector3.Distance(transform.position, bottomPoint.position);
             if (dist < snapDistance)
             {
-                // Rotate 90бу relative to the weight above
                 float parentY = other.transform.eulerAngles.y;
                 Quaternion targetRotation = Quaternion.Euler(0f, parentY + 90f, 0f);
-                Vector3 targetPosition = GetPositionForTopAlignment(bottomPoint.position, targetRotation);
 
                 transform.SetParent(bottomPoint);
                 transform.rotation = targetRotation;
