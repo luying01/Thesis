@@ -9,15 +9,10 @@ public class WeightSnap : MonoBehaviour
     private PulleyPhysics pulleyPhysics;
     public bool isSnapped = false;
 
-    
     private ActionBasedController currentController = null;
-   
 
-    // Calibrated for 25g to 100g weights
-    // At min mass: amplitude 0.2, interval 0.3s
-    // At max mass: amplitude 0.7, interval 0.05s
     private float minMass = 0.025f;
-    private float maxMass = 0.4f; // adjust if you add more weights
+    private float maxMass = 0.4f;
     private float minAmplitude = 0.2f;
     private float maxAmplitude = 0.7f;
 
@@ -31,36 +26,29 @@ public class WeightSnap : MonoBehaviour
 
     void Update()
     {
-        // Continuous haptic while holding the weight
         if (currentController == null) return;
 
         Rigidbody rb = GetComponent<Rigidbody>();
         float mass = rb != null ? rb.mass : minMass;
 
-        // Normalize mass to amplitude, calibrated for 25g to 400g
         float t = Mathf.InverseLerp(minMass, maxMass, mass);
         float amplitude = Mathf.Lerp(minAmplitude, maxAmplitude, t);
         amplitude = Mathf.Clamp(amplitude, minAmplitude, maxAmplitude);
 
-        // Send every frame with short duration, same pattern as RopeGrab
         currentController.SendHapticImpulse(amplitude, 0.1f);
     }
 
     void OnReleased(SelectExitEventArgs args)
     {
-        // Stop haptics
         currentController = null;
-
         if (isSnapped) return;
         StartCoroutine(TrySnapDelayed());
     }
 
     void OnGrabbedWithArgs(SelectEnterEventArgs args)
     {
-        // Start tracking which controller is holding this weight
         currentController = args.interactorObject.transform
             .GetComponentInParent<ActionBasedController>();
-
         OnGrabbed();
     }
 
@@ -69,10 +57,47 @@ public class WeightSnap : MonoBehaviour
         yield return null;
         yield return null;
 
+        // Try snapping to another weight first
         if (TrySnapToWeight()) yield break;
 
+        // Try snapping to movable pulley bottom (load side)
+        if (TrySnapToMovablePulleyBottom()) yield break;
+
+        // Try snapping to hooks (free end or fixed side)
         TrySnapToHook(pulleyPhysics.hookLeft, true);
         TrySnapToHook(pulleyPhysics.hookRight, false);
+    }
+
+    bool TrySnapToMovablePulleyBottom()
+    {
+        if (pulleyPhysics.movablePulleyBottom == null) return false;
+        if (pulleyPhysics.weightChainLoad != null) return false;
+
+        Transform bottomPoint = pulleyPhysics.movablePulleyBottom;
+        float dist = Vector3.Distance(transform.position, bottomPoint.position);
+
+        if (dist < snapDistance)
+        {
+            Quaternion targetRotation = Quaternion.identity;
+            Vector3 targetPosition = GetPositionForTopAlignment(bottomPoint.position, targetRotation);
+
+            transform.SetParent(bottomPoint);
+            transform.rotation = targetRotation;
+            transform.position = targetPosition;
+
+            pulleyPhysics.weightChainLoad = this.gameObject;
+            pulleyPhysics.velocity = 0f;
+
+            // Init loadY
+            pulleyPhysics.GetType()
+                .GetField("loadY", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.SetValue(pulleyPhysics, bottomPoint.position.y);
+
+            isSnapped = true;
+            Debug.Log("Weight snapped to movable pulley bottom");
+            return true;
+        }
+        return false;
     }
 
     Vector3 GetPositionForTopAlignment(Vector3 targetWorldPos, Quaternion weightRotation)
@@ -90,8 +115,8 @@ public class WeightSnap : MonoBehaviour
     {
         if (hook == null || isSnapped) return;
 
-        if (isLeft && pulleyPhysics.weightChainLeft != null) return;
-        if (!isLeft && pulleyPhysics.weightChainRight != null) return;
+        float MA = pulleyPhysics.pulleySystem != null ?
+                   pulleyPhysics.pulleySystem.GetMechanicalAdvantage() : 1f;
 
         float dist = Vector3.Distance(transform.position, hook.position);
         if (dist < snapDistance)
@@ -103,13 +128,24 @@ public class WeightSnap : MonoBehaviour
             transform.rotation = targetRotation;
             transform.position = targetPosition;
 
-            if (isLeft)
-                pulleyPhysics.weightChainLeft = this.gameObject;
+            if (MA > 1f)
+            {
+                // MA=2: free end hook ¡ú weightChainForce
+                if (pulleyPhysics.weightChainForce == null)
+                    pulleyPhysics.weightChainForce = this.gameObject;
+            }
             else
-                pulleyPhysics.weightChainRight = this.gameObject;
+            {
+                // MA=1: standard Atwood
+                if (isLeft && pulleyPhysics.weightChainLeft == null)
+                    pulleyPhysics.weightChainLeft = this.gameObject;
+                else if (!isLeft && pulleyPhysics.weightChainRight == null)
+                    pulleyPhysics.weightChainRight = this.gameObject;
+            }
 
             pulleyPhysics.velocity = 0f;
             isSnapped = true;
+            Debug.Log("Weight snapped to hook: " + hook.name + " MA=" + MA);
         }
     }
 
@@ -147,9 +183,9 @@ public class WeightSnap : MonoBehaviour
         isSnapped = false;
         transform.SetParent(null);
 
-        if (pulleyPhysics.weightChainLeft == this.gameObject)
-            pulleyPhysics.weightChainLeft = null;
-        if (pulleyPhysics.weightChainRight == this.gameObject)
-            pulleyPhysics.weightChainRight = null;
+        if (pulleyPhysics.weightChainLeft == this.gameObject) pulleyPhysics.weightChainLeft = null;
+        if (pulleyPhysics.weightChainRight == this.gameObject) pulleyPhysics.weightChainRight = null;
+        if (pulleyPhysics.weightChainLoad == this.gameObject) pulleyPhysics.weightChainLoad = null;
+        if (pulleyPhysics.weightChainForce == this.gameObject) pulleyPhysics.weightChainForce = null;
     }
 }
