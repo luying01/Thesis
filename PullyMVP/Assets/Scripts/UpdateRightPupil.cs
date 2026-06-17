@@ -20,15 +20,15 @@ public class UpdateRightPupil : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        XR_HTC_eye_tracker.Interop.GetEyePupilData(out XrSingleEyePupilDataHTC[] out_pupils);
-        XrSingleEyePupilDataHTC rightPupil = out_pupils[(int)XrEyePositionHTC.XR_EYE_POSITION_RIGHT_HTC];
-        if (rightPupil.isDiameterValid)
-            rightPupilDiameter = rightPupil.pupilDiameter;
-            Debug.Log("Right pupil diameter: " + rightPupilDiameter);
-        //Do something
-        if (rightPupil.isPositionValid)
-            rightPupilPosition = rightPupil.pupilPosition;
-        //Do something 
-            Debug.Log("Right pupil position: " + rightPupilPosition.x + ", " + rightPupilPosition.y);
+        //XR_HTC_eye_tracker.Interop.GetEyePupilData(out XrSingleEyePupilDataHTC[] out_pupils);
+        //XrSingleEyePupilDataHTC rightPupil = out_pupils[(int)XrEyePositionHTC.XR_EYE_POSITION_RIGHT_HTC];
+        //if (rightPupil.isDiameterValid)
+        //    rightPupilDiameter = rightPupil.pupilDiameter;
+        //    Debug.Log("Right pupil diameter: " + rightPupilDiameter);
+        ////Do something
+        //if (rightPupil.isPositionValid)
+        //    rightPupilPosition = rightPupil.pupilPosition;
+        ////Do something 
+        //    Debug.Log("Right pupil position: " + rightPupilPosition.x + ", " + rightPupilPosition.y);
     }
 }

@@ -1,0 +1,25 @@
+{
+  "questions": [
+    {
+      "id": 1,
+      "questionText": "Which side will sink?",
+      "imagePath": "",
+      "options": ["Left", "Right", "It will balance", "Don't know"],
+      "correctAnswer": 1
+    },
+    {
+      "id": 2,
+      "questionText": "A movable pulley gives a mechanical advantage of:",
+      "imagePath": "",
+      "options": ["1", "2", "3", "4"],
+      "correctAnswer": 1
+    },
+    {
+      "id": 3,
+      "questionText": "If you use one fixed and one movable pulley together, the effort needed is approximately:",
+      "imagePath": "",
+      "options": ["Equal to the load", "Half of the load", "Double the load", "Quarter of the load"],
+      "correctAnswer": 1
+    }
+  ]
+}
