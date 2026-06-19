@@ -13,7 +13,7 @@ public class Question
     public string questionText;
     public string imagePath;
     public string[] options;
-    public int[] correctAnswer;   // Changed from int to int[] to support multiple correct answers
+    public int[] correctAnswer;
 }
 
 [System.Serializable]

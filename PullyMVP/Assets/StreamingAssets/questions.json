@@ -21,5 +21,4 @@
       "options": ["Rope A is heavier than rope B", "Rope A is heavier than rope B", "It takes longer distance in situation A", "It takes longer distans in situation B"],
       "correctAnswer": [0, 3]
     }
-  ]
 }
