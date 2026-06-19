@@ -1,0 +1,25 @@
+{
+  "questions": [
+    {
+      "id": 1,
+      "questionText": "Which side will sink?",
+      "imagePath": "1",
+      "options": ["Left", "Right", "It will balance", "Don't know"],
+      "correctAnswer": [1]
+    },
+    {
+      "id": 2,
+      "questionText": "Which side will sink?",
+      "imagePath": "2",
+      "options": ["Left", "Right", "It will balance", "Don't know"],
+      "correctAnswer": [2]
+    },
+    {
+      "id": 3,
+      "questionText": "Lift the weight 10cm up. What differences will you feel between these two situation? (Select all that apply)",
+      "imagePath": "3",
+      "options": ["Rope A is heavier than rope B", "Rope A is heavier than rope B", "It takes longer distance in situation A", "It takes longer distans in situation B"],
+      "correctAnswer": [0, 3]
+    }
+  ]
+}
