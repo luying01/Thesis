@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class PulleyPhysics : MonoBehaviour
 {
@@ -28,10 +28,33 @@ public class PulleyPhysics : MonoBehaviour
     public float massLeft = 0f;
     public float massRight = 0f;
 
+    [Header("Read Only - For ConceptualAid")]
+    public float acceleration = 0f;
+    public float tensionForce = 0f;
+    public float distanceHookL = 0f;
+    public float distanceHookR = 0f;
+    public float distanceMovablePulley = 0f;
+
+    [Header("Trajectory Lines")]
+    public LineRenderer lineHookL;
+    public LineRenderer lineHookR;
+    public LineRenderer lineMovablePulley;
+
+    // Private tracking variables
+    private float previousVelocity = 0f;
+    private Vector3 startPositionHookL;
+    private Vector3 startPositionHookR;
+    private Vector3 startPositionMovablePulley;
+    private bool trackingHookL = false;
+    private bool trackingHookR = false;
+    private bool trackingMovablePulley = false;
+
     private float g = 9.81f;
     private float loadY;
     private float forceY;
     private Transform fixedPulleySlotRef;
+
+    // ── Unity Lifecycle ───────────────────────────────────────────
 
     void Start()
     {
@@ -45,10 +68,16 @@ public class PulleyPhysics : MonoBehaviour
                 movablePulleyBottom.position.y;
         if (freeEndHook != null)
             forceY = freeEndHook.position.y;
+
+        InitLine(lineHookL);
+        InitLine(lineHookR);
+        InitLine(lineMovablePulley);
     }
 
     void FixedUpdate()
     {
+        previousVelocity = velocity;
+
         float MA = pulleySystem != null ? pulleySystem.GetMechanicalAdvantage() : 1f;
 
         RopeGrab ropeGrabLeft = hookLeft != null ? hookLeft.GetComponent<RopeGrab>() : null;
@@ -63,7 +92,11 @@ public class PulleyPhysics : MonoBehaviour
             UpdateAtwood(leftGrabbed, rightGrabbed);
         else
             UpdateMovablePulley(MA, leftGrabbed, rightGrabbed);
+
+        acceleration = (velocity - previousVelocity) / Time.fixedDeltaTime;
     }
+
+    // ── Atwood ───────────────────────────────────────────────────
 
     private void UpdateAtwood(bool leftGrabbed, bool rightGrabbed)
     {
@@ -102,9 +135,10 @@ public class PulleyPhysics : MonoBehaviour
             }
             else
             {
-                float acceleration = (massLeft - massRight) * g / totalMass;
-                velocity += acceleration * Time.fixedDeltaTime;
+                float acceleration_raw = (massLeft - massRight) * g / totalMass;
+                velocity += acceleration_raw * Time.fixedDeltaTime;
                 velocity = Mathf.Clamp(velocity, -2f, 2f);
+                tensionForce = massRight * (g + acceleration_raw);
                 leftLength += velocity * Time.fixedDeltaTime;
                 rightLength = totalRopeLength - leftLength;
             }
@@ -118,9 +152,22 @@ public class PulleyPhysics : MonoBehaviour
                 hookRight.position = new Vector3(slotRight.position.x, slotRight.position.y - rightLength, slotRight.position.z);
         }
 
+        if (trackingHookL && hookLeft != null)
+        {
+            distanceHookL = Vector3.Distance(hookLeft.position, startPositionHookL);
+            AppendLine(lineHookL, hookLeft.position);
+        }
+        if (trackingHookR && hookRight != null)
+        {
+            distanceHookR = Vector3.Distance(hookRight.position, startPositionHookR);
+            AppendLine(lineHookR, hookRight.position);
+        }
+
         if (weightChainLeft != null && hookLeft != null) SetChainPosition(weightChainLeft, hookLeft.position);
         if (weightChainRight != null && hookRight != null) SetChainPosition(weightChainRight, hookRight.position);
     }
+
+    // ── Movable Pulley ────────────────────────────────────────────
 
     private void UpdateMovablePulley(float MA, bool leftGrabbed, bool rightGrabbed)
     {
@@ -134,13 +181,16 @@ public class PulleyPhysics : MonoBehaviour
 
         if (freeEndGrabbed)
         {
-            // Player pulling free end - enforce rope constraint
-            forceY = freeEndHook.position.y;
-            float d2 = Mathf.Abs(fixedY - forceY);
+            float d2 = Vector3.Distance(fixedPulleySlotRef.position, freeEndHook.position);
             float d1 = (totalRopeLengthMA2 - d2) / 2f;
             d1 = Mathf.Max(d1, 0.01f);
             loadY = fixedY - d1;
+            forceY = freeEndHook.position.y;
             velocity = 0f;
+
+            // Calculate tension when student is pulling free end
+            float loadMassGrabbed = weightChainLoad != null ? GetChainMass(weightChainLoad) : 0f;
+            tensionForce = loadMassGrabbed * g / MA;
         }
         else if (loadMass == 0f && forceMass == 0f)
         {
@@ -151,17 +201,17 @@ public class PulleyPhysics : MonoBehaviour
         {
             float netForce = (loadMass - forceMass * MA) * g;
             float totalInertia = loadMass + forceMass * MA * MA;
-            float acceleration = netForce / totalInertia;
+            float acceleration_raw = netForce / totalInertia;
 
-            velocity += acceleration * Time.fixedDeltaTime;
+            tensionForce = (loadMass * g - loadMass * acceleration_raw) / MA;
+
+            velocity += acceleration_raw * Time.fixedDeltaTime;
             velocity = Mathf.Clamp(velocity, -2f, 2f);
 
             loadY -= velocity * Time.fixedDeltaTime;
 
-            // Enforce rope constraint: d1*2 + d2 = L
             float d1 = Mathf.Abs(fixedY - loadY);
             float d2 = totalRopeLengthMA2 - d1 * 2f;
-
             float minD1 = 0.01f;
             float minD2 = 0.01f;
 
@@ -176,19 +226,28 @@ public class PulleyPhysics : MonoBehaviour
             forceY = fixedY - d2;
         }
 
-        // Move entire movable pulley (parent of movablePulleyBottom)
         Transform movablePulley = movablePulleyBottom?.parent;
         if (movablePulley != null)
             movablePulley.position = new Vector3(
-                movablePulley.position.x,
-                loadY,
-                movablePulley.position.z);
+                movablePulley.position.x, loadY, movablePulley.position.z);
 
-        if (freeEndHook != null)
+        // Only update Y when not grabbed, allow free 3D movement when grabbed
+        if (freeEndHook != null && !freeEndGrabbed)
             freeEndHook.position = new Vector3(
                 freeEndHook.position.x,
                 forceY,
                 freeEndHook.position.z);
+
+        if (trackingMovablePulley && movablePulleyBottom != null)
+        {
+            distanceMovablePulley = Vector3.Distance(movablePulleyBottom.position, startPositionMovablePulley);
+            AppendLine(lineMovablePulley, movablePulleyBottom.position);
+        }
+        if (trackingHookR && freeEndHook != null)
+        {
+            distanceHookR = Vector3.Distance(freeEndHook.position, startPositionHookR);
+            AppendLine(lineHookR, freeEndHook.position);
+        }
 
         if (weightChainLoad != null && movablePulleyBottom != null)
             SetChainPosition(weightChainLoad, movablePulleyBottom.position);
@@ -196,7 +255,105 @@ public class PulleyPhysics : MonoBehaviour
             SetChainPosition(weightChainForce, freeEndHook.position);
     }
 
-    // Called by PulleySystem when rope is updated
+    // ── Trajectory Lines ──────────────────────────────────────────
+
+    private void InitLine(LineRenderer lr)
+    {
+        if (lr == null) return;
+        lr.positionCount = 0;
+        lr.startWidth = 0.003f;
+        lr.endWidth = 0.003f;
+        lr.useWorldSpace = true;
+        lr.enabled = false;
+    }
+
+    private void AppendLine(LineRenderer lr, Vector3 currentPosition)
+    {
+        if (lr == null || !lr.enabled) return;
+        lr.positionCount = 2;
+        lr.SetPosition(1, currentPosition);
+    }
+
+    // ── Public: Start Tracking ────────────────────────────────────
+
+    public void StartLoadTracking(string endpoint, Vector3 startPos)
+    {
+        switch (endpoint)
+        {
+            case "HookL":
+                startPositionHookL = startPos;
+                trackingHookL = true;
+                distanceHookL = 0f;
+                if (lineHookL != null)
+                {
+                    lineHookL.positionCount = 2;
+                    lineHookL.SetPosition(0, startPos);
+                    lineHookL.SetPosition(1, startPos);
+                }
+                break;
+            case "HookR":
+                startPositionHookR = startPos;
+                trackingHookR = true;
+                distanceHookR = 0f;
+                if (lineHookR != null)
+                {
+                    lineHookR.positionCount = 2;
+                    lineHookR.SetPosition(0, startPos);
+                    lineHookR.SetPosition(1, startPos);
+                }
+                break;
+            case "MovablePulley":
+                startPositionMovablePulley = startPos;
+                trackingMovablePulley = true;
+                distanceMovablePulley = 0f;
+                if (lineMovablePulley != null)
+                {
+                    lineMovablePulley.positionCount = 2;
+                    lineMovablePulley.SetPosition(0, startPos);
+                    lineMovablePulley.SetPosition(1, startPos);
+                }
+                break;
+        }
+        Debug.Log($"[PulleyPhysics] Started tracking {endpoint}");
+    }
+
+    // ── Public Getters for ConceptualAidManager ───────────────────
+
+    public bool IsTrackingHookL() => trackingHookL;
+    public bool IsTrackingHookR() => trackingHookR;
+    public bool IsTrackingMovablePulley() => trackingMovablePulley;
+
+    public Vector3 GetStartPositionHookL() => startPositionHookL;
+    public Vector3 GetStartPositionHookR() => startPositionHookR;
+    public Vector3 GetStartPositionMovablePulley() => startPositionMovablePulley;
+
+    public bool IsMovablePulleyConfig() =>
+        pulleySystem != null && pulleySystem.GetMechanicalAdvantage() > 1f;
+
+    public float GetLoadMass() =>
+        weightChainLoad != null ? GetChainMass(weightChainLoad) : 0f;
+
+    // ── Public: Reset ─────────────────────────────────────────────
+
+    public void ResetTracking()
+    {
+        trackingHookL = false;
+        trackingHookR = false;
+        trackingMovablePulley = false;
+        distanceHookL = 0f;
+        distanceHookR = 0f;
+        distanceMovablePulley = 0f;
+        acceleration = 0f;
+        tensionForce = 0f;
+        velocity = 0f;
+
+        if (lineHookL != null) lineHookL.positionCount = 0;
+        if (lineHookR != null) lineHookR.positionCount = 0;
+        if (lineMovablePulley != null) lineMovablePulley.positionCount = 0;
+    }
+
+    // ── Existing Methods ──────────────────────────────────────────
+
     public void SetFreeEndHook(Transform hook)
     {
         freeEndHook = hook;
@@ -205,7 +362,6 @@ public class PulleyPhysics : MonoBehaviour
         Debug.Log("Free end hook set to: " + hook?.name);
     }
 
-    // Called by PulleySystem to set fixed pulley reference and initialize rope length
     public void SetFixedPulleyRef(Transform fixedSlot)
     {
         fixedPulleySlotRef = fixedSlot;

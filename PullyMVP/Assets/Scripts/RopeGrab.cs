@@ -93,43 +93,52 @@ public class RopeGrab : MonoBehaviour
     {
         if (hapticController == null || pulleyPhysics == null) return;
 
-        float massLeft = pulleyPhysics.massLeft;
-        float massRight = pulleyPhysics.massRight;
         float g = 9.81f;
-
         float amplitude = 0f;
 
-        bool isLeft = (pulleyPhysics.hookLeft == this.transform);
-        float myLength = isLeft ? pulleyPhysics.leftLength : pulleyPhysics.rightLength;
+        bool isMA2 = pulleyPhysics.IsMovablePulleyConfig();
 
-        if (myLength <= 0.05f)
+        if (isMA2)
         {
-            amplitude = maxHapticAmplitude;
+            // Movable pulley config: use tension force from physics
+            float tension = pulleyPhysics.tensionForce;
+            if (tension > 0f)
+            {
+                float minTension = 0.025f * g;
+                float maxTension = 0.2f * g;
+                amplitude = Mathf.InverseLerp(minTension, maxTension, tension) * maxHapticAmplitude;
+                amplitude = Mathf.Clamp(amplitude, 0.2f, maxHapticAmplitude);
+            }
         }
-        else if (massLeft > 0f || massRight > 0f)
+        else
         {
-            float tension = 0f;
-            if (massLeft > 0f && massRight > 0f)
-            {
-                tension = (2f * massLeft * massRight * g) / (massLeft + massRight);
-            }
-            else
-            {
-                tension = Mathf.Max(massLeft, massRight) * g;
-            }
+            // Atwood config: use mass-based tension calculation
+            float massLeft = pulleyPhysics.massLeft;
+            float massRight = pulleyPhysics.massRight;
 
-            // Calibrated for 25g weights (0.025kg each)
-            // 1 weight (0.025kg): ~0.25N  -> low amplitude
-            // 4 weights (0.1kg):  ~1.0N   -> near max amplitude
-            float minTension = 0.025f * g;
-            float maxTension = 0.1f * g;
-            amplitude = Mathf.InverseLerp(minTension, maxTension, tension) * maxHapticAmplitude;
-            amplitude = Mathf.Clamp(amplitude, 0.2f, maxHapticAmplitude);
+            bool isLeft = (pulleyPhysics.hookLeft == this.transform);
+            float myLength = isLeft ? pulleyPhysics.leftLength : pulleyPhysics.rightLength;
+
+            if (myLength <= 0.05f)
+            {
+                amplitude = maxHapticAmplitude;
+            }
+            else if (massLeft > 0f || massRight > 0f)
+            {
+                float tension = 0f;
+                if (massLeft > 0f && massRight > 0f)
+                    tension = (2f * massLeft * massRight * g) / (massLeft + massRight);
+                else
+                    tension = Mathf.Max(massLeft, massRight) * g;
+
+                float minTension = 0.025f * g;
+                float maxTension = 0.1f * g;
+                amplitude = Mathf.InverseLerp(minTension, maxTension, tension) * maxHapticAmplitude;
+                amplitude = Mathf.Clamp(amplitude, 0.2f, maxHapticAmplitude);
+            }
         }
 
         if (amplitude > 0f)
-        {
             hapticController.SendHapticImpulse(amplitude, 0.1f);
-        }
     }
 }

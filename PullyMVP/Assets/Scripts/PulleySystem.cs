@@ -18,8 +18,8 @@ public class PulleySystem : MonoBehaviour
     private RopeSystem ropeSystem;
     private Transform lockedMovablePulley = null;
     private PulleyPhysics pulleyPhysics;
-    private PulleySlot cachedFixedSlot = null;
-    private bool movableIsRight = false;
+    public PulleySlot cachedFixedSlot = null;
+    public bool movableIsRight = false;
 
     private void Awake()
     {
@@ -68,7 +68,6 @@ public class PulleySystem : MonoBehaviour
         Debug.Log($"Fixed: {fixedCount}, Movable: {movableCount}, " +
                   $"Segments: {ropeSegments}, MA: {mechanicalAdvantage}");
 
-        // Cache fixed slot and side direction
         cachedFixedSlot = null;
         foreach (var slot in fixedPulleySlots)
         {
@@ -126,12 +125,7 @@ public class PulleySystem : MonoBehaviour
             waypoints.Add(fixedSlotL.position);
 
             ropeEnd = ropeEndLeft;
-            Vector3 freeEnd = new Vector3(
-                fixedSlotL.position.x,
-                ropeEnd.position.y,
-                fixedSlotL.position.z
-            );
-            waypoints.Add(freeEnd);
+            // Use actual 3D position of free end hook directly
             waypoints.Add(ropeEnd.position);
         }
         else
@@ -148,12 +142,7 @@ public class PulleySystem : MonoBehaviour
             waypoints.Add(fixedSlotR.position);
 
             ropeEnd = ropeEndRight;
-            Vector3 freeEnd = new Vector3(
-                fixedSlotR.position.x,
-                ropeEnd.position.y,
-                fixedSlotR.position.z
-            );
-            waypoints.Add(freeEnd);
+            // Use actual 3D position of free end hook directly
             waypoints.Add(ropeEnd.position);
         }
 

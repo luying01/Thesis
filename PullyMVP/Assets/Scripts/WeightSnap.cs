@@ -57,13 +57,9 @@ public class WeightSnap : MonoBehaviour
         yield return null;
         yield return null;
 
-        // Try snapping to another weight first
         if (TrySnapToWeight()) yield break;
-
-        // Try snapping to movable pulley bottom (load side)
         if (TrySnapToMovablePulleyBottom()) yield break;
 
-        // Try snapping to hooks (free end or fixed side)
         TrySnapToHook(pulleyPhysics.hookLeft, true);
         TrySnapToHook(pulleyPhysics.hookRight, false);
     }
@@ -88,10 +84,12 @@ public class WeightSnap : MonoBehaviour
             pulleyPhysics.weightChainLoad = this.gameObject;
             pulleyPhysics.velocity = 0f;
 
-            // Init loadY
             pulleyPhysics.GetType()
                 .GetField("loadY", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                 ?.SetValue(pulleyPhysics, bottomPoint.position.y);
+
+            // Start tracking movable pulley end
+            pulleyPhysics.StartLoadTracking("MovablePulley", bottomPoint.position);
 
             isSnapped = true;
             Debug.Log("Weight snapped to movable pulley bottom");
@@ -130,17 +128,23 @@ public class WeightSnap : MonoBehaviour
 
             if (MA > 1f)
             {
-                // MA=2: free end hook ¡ú weightChainForce
                 if (pulleyPhysics.weightChainForce == null)
                     pulleyPhysics.weightChainForce = this.gameObject;
             }
             else
             {
-                // MA=1: standard Atwood
                 if (isLeft && pulleyPhysics.weightChainLeft == null)
+                {
                     pulleyPhysics.weightChainLeft = this.gameObject;
+                    // Start tracking Hook_L end
+                    pulleyPhysics.StartLoadTracking("HookL", hook.position);
+                }
                 else if (!isLeft && pulleyPhysics.weightChainRight == null)
+                {
                     pulleyPhysics.weightChainRight = this.gameObject;
+                    // Start tracking Hook_R end
+                    pulleyPhysics.StartLoadTracking("HookR", hook.position);
+                }
             }
 
             pulleyPhysics.velocity = 0f;

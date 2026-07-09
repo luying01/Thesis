@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
-using UnityEngine.InputSystem;
 
 public class MovablePulleyLock : MonoBehaviour
 {
@@ -25,11 +24,9 @@ public class MovablePulleyLock : MonoBehaviour
     {
         bool isSelected = grabInteractable.isSelected;
 
-        // Auto unlock when player grabs the pulley again
         if (!wasSelected && isSelected && isLocked)
             Unlock();
 
-        // Detect when player releases the pulley
         if (wasSelected && !isSelected && !isLocked)
         {
             PulleySlot nearestSlot = pulleySystem.GetNearestOccupiedFixedSlot(transform.position);
@@ -53,11 +50,11 @@ public class MovablePulleyLock : MonoBehaviour
             transform.position.y,
             transform.position.z
         );
+
         transform.position = correctedPosition;
         transform.rotation = slot.transform.rotation;
         isLocked = true;
 
-        // Auto trigger rope update
         pulleySystem.OnMovablePulleyLocked(this.transform);
         Debug.Log("Movable pulley locked and rope updated at " + transform.position);
     }
