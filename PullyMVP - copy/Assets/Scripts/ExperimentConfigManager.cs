@@ -2,8 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-
-// ���� Data Classes ����������������������������������������������������������������������������������������������������������������������������
+// ── Data Classes ──────────────────────────────────────────────────────────────
 
 [System.Serializable]
 public class Vector3Data
@@ -31,9 +30,11 @@ public class ExperimentConfig
     public int fixedPulleyHangerIndex;          // 0-4, used in low fidelity
     public Vector3Data movablePulleyOffset;     // Offset from fixed pulley
     public WeightAssignment[] weightAssignments;
+    public bool holdOnly;
+    public float holdSeconds;
 }
 
-// ���� ExperimentConfigManager ������������������������������������������������������������������������������������������������������
+// ── ExperimentConfigManager ──────────────────────────────────────────────────
 
 public class ExperimentConfigManager : MonoBehaviour
 {
@@ -56,6 +57,8 @@ public class ExperimentConfigManager : MonoBehaviour
 
     [Header("References")]
     public FidelityManager fidelityManager;
+    public ResetManager resetManager;
+    public PulleyPhysics pulleyPhysics;
 
     // Current active config
     private ExperimentConfig currentConfig;
@@ -63,52 +66,67 @@ public class ExperimentConfigManager : MonoBehaviour
     // Active coroutines tracker
     private List<Coroutine> activeCoroutines = new List<Coroutine>();
 
-    // ���� Fidelity Level Change ��������������������������������������������������������������������������
+    // Currently running demo/single-equip coroutine (Play button driven)
+    private Coroutine currentDemoCoroutine;
 
-    // Called by FidelityManager.onFidelityLevelChanged event
+    // ── Fidelity Level Change ─────────────────────────────────────────────
+
     public void OnFidelityLevelChanged(int newLevel)
     {
         if (currentConfig == null) return;
         ApplyConfig(currentConfig);
     }
 
-    // ���� Main Entry Point ������������������������������������������������������������������������������������
+    // ── Main Entry Point ─────────────────────────────────────────────────
 
     public void ApplyConfig(ExperimentConfig config)
     {
         currentConfig = config;
 
-        // Stop any running animations
+        targetWeightCount = new Dictionary<string, int>();
+        lastAutoSnappedPerTarget.Clear();
+
         foreach (Coroutine c in activeCoroutines)
             if (c != null) StopCoroutine(c);
         activeCoroutines.Clear();
 
-        // Step 1: Show/hide equipment
         ApplyVisibility(config);
 
-        // Step 2: Apply interaction based on fidelity level
         int level = fidelityManager != null ? fidelityManager.GetCurrentLevel() : 3;
         bool isHighFidelity = (level == 2 || level == 3);
 
         if (isHighFidelity)
+        {
             ApplyHighFidelity(config);
+        }
         else
-            activeCoroutines.Add(StartCoroutine(ApplyLowFidelity(config)));
+        {
+            // Low fidelity no longer auto-equips. Just show the right equipment
+            // (already done above via ApplyVisibility) and disable grabbing until
+            // the student presses Play, which calls StartSingleEquip() or
+            // StartDemoSequence() from DemoPlayButtonController.
+            SetGrabbable(fixedPulley, false);
+            SetGrabbable(movablePulley, false);
+            SetGrabbable(hookL, false);
+            SetGrabbable(hookR, false);
+            foreach (WeightAssignment wa in config.weightAssignments)
+            {
+                GameObject weight = FindWeight(wa.weightName);
+                if (weight != null) SetGrabbable(weight, false);
+            }
+        }
     }
 
-    // ���� Step 1: Visibility ��������������������������������������������������������������������������������
+    // ── Step 1: Visibility ────────────────────────────────────────────────
 
     private void ApplyVisibility(ExperimentConfig config)
     {
-        // Show/hide pulleys
         fixedPulley.SetActive(config.useFixedPulley);
         movablePulley.SetActive(config.useMovablePulley);
 
-        // Hide all weights first
         foreach (GameObject w in allWeights)
             w.SetActive(false);
 
-        // Show only weights needed in this config
         foreach (WeightAssignment wa in config.weightAssignments)
         {
             GameObject weight = FindWeight(wa.weightName);
@@ -117,11 +135,10 @@ public class ExperimentConfigManager : MonoBehaviour
         }
     }
 
-    // ���� Step 2a: High Fidelity ������������������������������������������������������������������������
+    // ── Step 2a: High Fidelity ────────────────────────────────────────────
 
     private void ApplyHighFidelity(ExperimentConfig config)
     {
-        // Enable all grabbable equipment, no position restrictions
         SetGrabbable(fixedPulley, true);
         SetGrabbable(movablePulley, true);
         SetGrabbable(hookL, true);
@@ -137,11 +154,10 @@ public class ExperimentConfigManager : MonoBehaviour
         Debug.Log("[ExperimentConfigManager] High fidelity: all equipment grabbable");
     }
 
-    // ���� Step 2b: Low Fidelity ��������������������������������������������������������������������������
+    // ── Step 2b: Low Fidelity (used both by legacy auto-path and Play button) ──
 
     private IEnumerator ApplyLowFidelity(ExperimentConfig config)
     {
-        // Disable all grabbing during animation
         SetGrabbable(fixedPulley, false);
         SetGrabbable(movablePulley, false);
         SetGrabbable(hookL, false);
@@ -153,39 +169,95 @@ public class ExperimentConfigManager : MonoBehaviour
             if (weight != null) SetGrabbable(weight, false);
         }
 
-        // Animate fixed pulley to target hanger
+        PulleySlot targetSlot = null;
+
         if (config.useFixedPulley && config.fixedPulleyHangerIndex < hangers.Length)
         {
             Vector3 hangerTarget = hangers[config.fixedPulleyHangerIndex].position;
             yield return StartCoroutine(AnimateToPosition(fixedPulley, hangerTarget));
+
+            targetSlot = hangers[config.fixedPulleyHangerIndex].GetComponentInChildren<PulleySlot>();
+            if (targetSlot != null)
+                targetSlot.SnapPulley(fixedPulley);
         }
 
-        // Animate movable pulley relative to fixed pulley
         if (config.useMovablePulley)
         {
             Vector3 movableTarget = fixedPulley.transform.position
                                   + config.movablePulleyOffset.ToVector3();
             yield return StartCoroutine(AnimateToPosition(movablePulley, movableTarget));
+
+            MovablePulleyLock mpl = movablePulley.GetComponent<MovablePulleyLock>();
+            if (mpl != null && targetSlot != null)
+                mpl.AutoLockToFixedPulley(targetSlot);
         }
 
-        // Animate weights to their targets
+        yield return StartCoroutine(GroupAndDeliverWeights(config));
+
         foreach (WeightAssignment wa in config.weightAssignments)
         {
-            GameObject weight = FindWeight(wa.weightName);
-            if (weight == null) continue;
+            if (!string.IsNullOrEmpty(wa.target)) continue;
 
-            Vector3 target = GetWeightTargetPosition(wa.target);
-            yield return StartCoroutine(AnimateToPosition(weight, target));
+            GameObject weight = FindWeight(wa.weightName);
+            if (weight != null) SetGrabbable(weight, true);
         }
 
         Debug.Log("[ExperimentConfigManager] Low fidelity: animation complete");
     }
 
-    // ���� Animation ��������������������������������������������������������������������������������������������������
+    private IEnumerator GroupAndDeliverWeights(ExperimentConfig config)
+    {
+        Dictionary<string, List<WeightAssignment>> groups = new Dictionary<string, List<WeightAssignment>>();
+        foreach (WeightAssignment wa in config.weightAssignments)
+        {
+            if (string.IsNullOrEmpty(wa.target)) continue;
+            if (!groups.ContainsKey(wa.target))
+                groups[wa.target] = new List<WeightAssignment>();
+            groups[wa.target].Add(wa);
+        }
+
+        List<(string target, WeightSnap head)> headsToRegister = new List<(string, WeightSnap)>();
+        List<Coroutine> moves = new List<Coroutine>();
+
+        foreach (var kvp in groups)
+        {
+            string target = kvp.Key;
+            List<WeightAssignment> members = kvp.Value;
+
+            GameObject headObj = FindWeight(members[0].weightName);
+            if (headObj == null) continue;
+            WeightSnap headSnap = headObj.GetComponent<WeightSnap>();
+
+            WeightSnap previous = headSnap;
+            for (int i = 1; i < members.Count; i++)
+            {
+                GameObject memberObj = FindWeight(members[i].weightName);
+                if (memberObj == null) continue;
+                WeightSnap memberSnap = memberObj.GetComponent<WeightSnap>();
+                if (memberSnap == null || previous == null) continue;
+
+                memberSnap.AutoSnapOntoWeight(previous);
+                previous = memberSnap;
+            }
+
+            Vector3 targetPos = GetWeightTargetPosition(target);
+            moves.Add(StartCoroutine(AnimateToPosition(headObj, targetPos)));
+
+            if (headSnap != null)
+                headsToRegister.Add((target, headSnap));
+        }
+
+        foreach (Coroutine c in moves)
+            yield return c;
+
+        foreach (var (target, headSnap) in headsToRegister)
+            headSnap.AutoSnapToTarget(target);
+    }
+
+    // ── Animation ─────────────────────────────────────────────────────────
 
     private IEnumerator AnimateToPosition(GameObject obj, Vector3 target)
     {
-        // Disable physics during animation
         SetKinematic(obj, true);
 
         Vector3 start = obj.transform.position;
@@ -202,26 +274,40 @@ public class ExperimentConfigManager : MonoBehaviour
         obj.transform.position = target;
     }
 
-    // ���� Position Helpers ������������������������������������������������������������������������������������
+    // ── Position Helpers ──────────────────────────────────────────────────
+
+    private Dictionary<string, int> targetWeightCount = new Dictionary<string, int>();
+    private Dictionary<string, WeightSnap> lastAutoSnappedPerTarget = new Dictionary<string, WeightSnap>();
 
     private Vector3 GetWeightTargetPosition(string target)
     {
+        if (!targetWeightCount.ContainsKey(target))
+            targetWeightCount[target] = 0;
+
+        int stackIndex = targetWeightCount[target];
+        targetWeightCount[target]++;
+
+        Vector3 basePosition;
         switch (target)
         {
             case "Hook_L":
-                return hookL.transform.position;
+                basePosition = hookL.transform.position;
+                break;
             case "Hook_R":
-                return hookR.transform.position;
+                basePosition = hookR.transform.position;
+                break;
             case "MovablePulley":
-                return movablePulley.transform.position
-                     + Vector3.down * 0.1f;
+                basePosition = movablePulley.transform.position + Vector3.down * 0.1f;
+                break;
             default:
                 Debug.LogWarning($"[ExperimentConfigManager] Unknown target: {target}");
                 return Vector3.zero;
         }
+
+        return basePosition + Vector3.down * 0.05f * stackIndex;
     }
 
-    // ���� Object Finders ����������������������������������������������������������������������������������������
+    // ── Object Finders ────────────────────────────────────────────────────
 
     private GameObject FindWeight(string weightName)
     {
@@ -231,7 +317,73 @@ public class ExperimentConfigManager : MonoBehaviour
         return null;
     }
 
-    // ���� Component Helpers ����������������������������������������������������������������������������������
+    // ── Show All Equipment ────────────────────────────────────────────────
+
+    public void ShowAllEquipment()
+    {
+        if (resetManager != null)
+            resetManager.ResetAll();
+
+        fixedPulley.SetActive(true);
+        movablePulley.SetActive(true);
+        foreach (GameObject w in allWeights)
+            w.SetActive(true);
+
+        SetGrabbable(fixedPulley, true);
+        SetGrabbable(movablePulley, true);
+        SetGrabbable(hookL, true);
+        SetGrabbable(hookR, true);
+        foreach (GameObject w in allWeights)
+            SetGrabbable(w, true);
+
+        currentConfig = null;
+        Debug.Log("[ExperimentConfigManager] All equipment shown");
+    }
+
+    // ── Reset To Current Config ───────────────────────────────────────────
+
+    public void ResetToCurrentConfig()
+    {
+        targetWeightCount = new Dictionary<string, int>();
+
+        if (resetManager != null)
+            resetManager.ResetAll();
+
+        if (currentConfig == null)
+        {
+            ShowAllEquipment();
+            return;
+        }
+
+        foreach (Coroutine c in activeCoroutines)
+            if (c != null) StopCoroutine(c);
+        activeCoroutines.Clear();
+
+        ApplyVisibility(currentConfig);
+
+        if (currentConfig.useFixedPulley && hangers.Length > currentConfig.fixedPulleyHangerIndex)
+            fixedPulley.transform.position = hangers[currentConfig.fixedPulleyHangerIndex].position;
+
+        if (currentConfig.useMovablePulley)
+        {
+            movablePulley.SetActive(true);
+            movablePulley.transform.position = fixedPulley.transform.position
+                + currentConfig.movablePulleyOffset.ToVector3();
+        }
+
+        foreach (WeightAssignment wa in currentConfig.weightAssignments)
+        {
+            GameObject weight = FindWeight(wa.weightName);
+            if (weight == null) continue;
+            weight.transform.position = GetWeightTargetPosition(wa.target);
+        }
+
+        ApplyHighFidelity(currentConfig);
+
+        Debug.Log("[ExperimentConfigManager] Reset to current config instantly");
+    }
+
+    // ── Component Helpers ─────────────────────────────────────────────────
 
     private void SetGrabbable(GameObject obj, bool enabled)
     {
@@ -245,5 +397,211 @@ public class ExperimentConfigManager : MonoBehaviour
         if (obj == null) return;
         Rigidbody rb = obj.GetComponent<Rigidbody>();
         if (rb != null) rb.isKinematic = kinematic;
+    }
+
+    // ── Play Button Entry Points ─────────────────────────────────────────
+
+    public void StartSingleEquip(ExperimentConfig config, System.Action onComplete)
+    {
+        StopCurrentDemo();
+        currentDemoCoroutine = StartCoroutine(RunSingleEquip(config, onComplete));
+    }
+
+    public void StartDemoSequence(ExperimentConfig[] steps, System.Action onComplete)
+    {
+        StopCurrentDemo();
+        currentDemoCoroutine = StartCoroutine(RunDemoSequence(steps, onComplete));
+    }
+
+    public void StopCurrentDemo()
+    {
+        if (currentDemoCoroutine != null)
+        {
+            StopCoroutine(currentDemoCoroutine);
+            currentDemoCoroutine = null;
+        }
+    }
+
+    private IEnumerator RunSingleEquip(ExperimentConfig config, System.Action onComplete)
+    {
+        if (resetManager != null)
+        {
+            resetManager.ResetAll();
+            yield return null;
+        }
+
+        yield return StartCoroutine(ApplyLowFidelity(config));
+
+        currentDemoCoroutine = null;
+        onComplete?.Invoke();
+    }
+
+    private IEnumerator RunDemoSequence(ExperimentConfig[] steps, System.Action onComplete)
+    {
+        if (steps == null || steps.Length == 0)
+        {
+            onComplete?.Invoke();
+            yield break;
+        }
+
+        if (resetManager != null)
+        {
+            resetManager.ResetAll();
+            yield return null;
+        }
+
+        yield return StartCoroutine(ForceDetachAllWeights());
+
+        // Pulley placement/locking happens ONCE for the whole sequence — all
+        // steps share the same pulley configuration, only weights change.
+        yield return StartCoroutine(SetupPulleysForDemo(steps[0]));
+
+        bool usesMovablePulley = steps[0].useMovablePulley;
+        float neutralLoadY = 0f;
+        float neutralForceY = 0f;
+        if (usesMovablePulley)
+        {
+            neutralLoadY = movablePulley.transform.position.y;
+            Transform freeEnd = pulleyPhysics != null ? pulleyPhysics.GetFreeEndHook() : null;
+            neutralForceY = freeEnd != null ? freeEnd.position.y : 0f;
+        }
+
+        foreach (ExperimentConfig step in steps)
+        {
+            yield return StartCoroutine(PlayDemoStep(step));
+
+            // After weights are retracted, snap the rope's Y-position back to
+            // neutral (not the pulleys themselves) before the next step delivers.
+            if (usesMovablePulley && pulleyPhysics != null)
+                pulleyPhysics.ResetRopeGeometry(neutralLoadY, neutralForceY);
+        }
+
+        currentDemoCoroutine = null;
+        onComplete?.Invoke();
+    }
+
+    private IEnumerator SetupPulleysForDemo(ExperimentConfig referenceStep)
+    {
+        fixedPulley.SetActive(referenceStep.useFixedPulley);
+        movablePulley.SetActive(referenceStep.useMovablePulley);
+
+        PulleySlot targetSlot = null;
+
+        if (referenceStep.useFixedPulley && referenceStep.fixedPulleyHangerIndex < hangers.Length)
+        {
+            Vector3 hangerTarget = hangers[referenceStep.fixedPulleyHangerIndex].position;
+            yield return StartCoroutine(AnimateToPosition(fixedPulley, hangerTarget));
+
+            targetSlot = hangers[referenceStep.fixedPulleyHangerIndex].GetComponentInChildren<PulleySlot>();
+            if (targetSlot != null)
+                targetSlot.SnapPulley(fixedPulley);
+        }
+
+        if (referenceStep.useMovablePulley)
+        {
+            Vector3 movableTarget = fixedPulley.transform.position
+                                  + referenceStep.movablePulleyOffset.ToVector3();
+            yield return StartCoroutine(AnimateToPosition(movablePulley, movableTarget));
+
+            MovablePulleyLock mpl = movablePulley.GetComponent<MovablePulleyLock>();
+            if (mpl != null && targetSlot != null)
+                mpl.AutoLockToFixedPulley(targetSlot);
+        }
+    }
+
+    // ── Demo Sequence Playback (per-step) ────────────────────────────────
+
+    private IEnumerator PlayDemoStep(ExperimentConfig step)
+    {
+        targetWeightCount.Clear();
+
+        yield return StartCoroutine(GroupAndDeliverWeights(step));
+
+        if (step.holdOnly)
+        {
+            yield return new WaitForSeconds(step.holdSeconds > 0 ? step.holdSeconds : 2f);
+        }
+        else
+        {
+            GameObject referenceWeight = FindWeight(step.weightAssignments[0].weightName);
+            yield return StartCoroutine(WaitUntilSettled(referenceWeight));
+        }
+
+        yield return StartCoroutine(RetractDemoWeights(step));
+    }
+
+    private IEnumerator WaitUntilSettled(GameObject referenceWeight)
+    {
+        if (referenceWeight == null)
+        {
+            yield return new WaitForSeconds(2f);
+            yield break;
+        }
+
+        float safetyTimeout = 8f;
+        float stableRequiredTime = 0.4f;
+        float elapsed = 0f;
+        float stableElapsed = 0f;
+        Vector3 lastPos = referenceWeight.transform.position;
+
+        while (elapsed < safetyTimeout)
+        {
+            yield return null;
+            elapsed += Time.deltaTime;
+
+            Vector3 currentPos = referenceWeight.transform.position;
+            if ((currentPos - lastPos).sqrMagnitude < 0.0001f)
+            {
+                stableElapsed += Time.deltaTime;
+                if (stableElapsed >= stableRequiredTime)
+                    yield break;
+            }
+            else
+            {
+                stableElapsed = 0f;
+            }
+
+            lastPos = currentPos;
+        }
+    }
+
+    private IEnumerator RetractDemoWeights(ExperimentConfig step)
+    {
+        List<Coroutine> moves = new List<Coroutine>();
+
+        foreach (WeightAssignment wa in step.weightAssignments)
+        {
+            GameObject weight = FindWeight(wa.weightName);
+            if (weight == null) continue;
+
+            WeightSnap ws = weight.GetComponent<WeightSnap>();
+            if (ws != null) ws.ForceDetach();
+
+            Vector3 home = resetManager != null ? resetManager.GetInitialPosition(weight) : weight.transform.position;
+            moves.Add(StartCoroutine(AnimateToPosition(weight, home)));
+        }
+
+        foreach (Coroutine c in moves)
+            yield return c;
+    }
+
+    private IEnumerator ForceDetachAllWeights()
+    {
+        List<Coroutine> moves = new List<Coroutine>();
+
+        foreach (GameObject w in allWeights)
+        {
+            WeightSnap ws = w.GetComponent<WeightSnap>();
+            if (ws != null) ws.ForceDetach();
+
+            if (resetManager != null)
+            {
+                Vector3 home = resetManager.GetInitialPosition(w);
+                moves.Add(StartCoroutine(AnimateToPosition(w, home)));
+            }
+        }
+
+        foreach (Coroutine c in moves)
+            yield return c;
     }
 }

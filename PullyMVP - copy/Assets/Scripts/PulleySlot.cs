@@ -13,10 +13,28 @@ public class PulleySlot : MonoBehaviour
     private GameObject snappedPulley;   // the pulley currently in this slot
 
     public GameObject snappedPulleyObject;  // the actual pulley GameObject snapped here
+    
+    [Header("Initial Placement")]
+    public GameObject autoSnapPulleyAtStart;
 
     private void Start()
     {
         snapPoint = this.transform;
+
+        if (autoSnapPulleyAtStart != null)
+        {
+            ApplyAutoSnapIfConfigured();
+        }
+    }
+
+    // Public so ResetManager can re-trigger this after a reset,
+    // bypassing whatever transform snapshot ResetManager captured at Start()
+    public void ApplyAutoSnapIfConfigured()
+    {
+        if (autoSnapPulleyAtStart != null)
+        {
+            SnapPulley(autoSnapPulleyAtStart);
+        }
     }
 
     // Called when a pulley enters the trigger zone

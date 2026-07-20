@@ -1,41 +1,59 @@
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
+using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 public class PulleyObject : MonoBehaviour
 {
     [Header("Settings")]
-    public bool isFixed = true;          // true = fixed pulley, false = movable pulley
+    public bool isFixed = true;
 
-    private PulleySlot currentSlot;      // slot this pulley is snapped to
-    private UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable grabInteractable;
+    [Header("References")]
+    public ExperimentConfigManager experimentConfigManager;
+    public FidelityManager fidelityManager;
+
+    private PulleySlot currentSlot;
+    private XRGrabInteractable grabInteractable;
     private Renderer pulleyRenderer;
     private Color originalColor;
 
     private void Awake()
     {
-        grabInteractable = GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable>();
+        grabInteractable = GetComponent<XRGrabInteractable>();
         pulleyRenderer = GetComponentInChildren<Renderer>();
         if (pulleyRenderer != null)
             originalColor = pulleyRenderer.material.color;
 
-        // Listen to grab and release events
         grabInteractable.selectExited.AddListener(OnReleased);
+        grabInteractable.selectEntered.AddListener(OnGrabbed);
+    }
+
+    // Called when player grabs the pulley
+    private void OnGrabbed(SelectEnterEventArgs args)
+    {
+        if (!isFixed) return;
+        if (experimentConfigManager == null) return;
+        if (fidelityManager == null) return;
+
+        int level = fidelityManager.GetCurrentLevel();
+        bool isHighFidelity = (level == 2 || level == 3);
+
+        // Only auto-reset in low fidelity; high fidelity allows free manual placement
+        if (isHighFidelity) return;
+
+        Debug.Log("[PulleyObject] Fixed pulley grabbed (low fidelity), resetting experiment");
+        experimentConfigManager.ResetToCurrentConfig();
     }
 
     // Called when player releases the pulley
     private void OnReleased(SelectExitEventArgs args)
     {
-        // Check if overlapping with any slot
         Collider[] hits = Physics.OverlapSphere(transform.position, 0.05f);
         foreach (var hit in hits)
         {
             PulleySlot slot = hit.GetComponent<PulleySlot>();
             if (slot != null && !slot.isOccupied)
             {
-                // Release from old slot if any
                 currentSlot?.ReleasePulley();
-
-                // Snap to new slot
                 currentSlot = slot;
                 slot.SnapPulley(gameObject);
                 ShowSnapHighlight(false);
@@ -43,12 +61,10 @@ public class PulleyObject : MonoBehaviour
             }
         }
 
-        // No slot found - release from current slot
         currentSlot?.ReleasePulley();
         currentSlot = null;
     }
 
-    // Show/hide highlight when near a slot
     public void ShowSnapHighlight(bool show)
     {
         if (pulleyRenderer == null) return;

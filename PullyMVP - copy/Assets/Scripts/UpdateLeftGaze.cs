@@ -9,7 +9,6 @@ public class NewBehaviourScript : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-
     }
 
     // Update is called once per frame
@@ -17,14 +16,16 @@ public class NewBehaviourScript : MonoBehaviour
     {
         XR_HTC_eye_tracker.Interop.GetEyeGazeData(out XrSingleEyeGazeDataHTC[] out_gazes);
         XrSingleEyeGazeDataHTC leftGaze = out_gazes[(int)XrEyePositionHTC.XR_EYE_POSITION_LEFT_HTC];
-        if (leftGaze.isValid)
+
+        var q = leftGaze.gazePose.orientation;
+        bool isZeroQuat = (q.x == 0 && q.y == 0 && q.z == 0 && q.w == 0);
+
+        if (leftGaze.isValid && !isZeroQuat)
         {
             // Eye position in world space
             Vector3 gazePosition = leftGaze.gazePose.position.ToUnityVector() + new Vector3(-0.75f, 1.2f, 0.75f);
-
             // Gaze orientation in world space
-            Quaternion gazeOrientation = Quaternion.Euler(0, 135f, 0) * leftGaze.gazePose.orientation.ToUnityQuaternion();
-
+            Quaternion gazeOrientation = Quaternion.Euler(0, 135f, 0) * q.ToUnityQuaternion();
             // Place object 1 meter along gaze direction
             transform.position = gazePosition + gazeOrientation * Vector3.forward * 1f;
             transform.rotation = gazeOrientation;

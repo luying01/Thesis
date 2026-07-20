@@ -4,86 +4,189 @@
       "id": 1,
       "difficulties": {
         "normal": {
-          "questionText": "Which side will sink?",
-          "imagePath": "1",
-          "options": ["Left", "Right", "It will balance", "Don't know"],
-          "correctAnswer": [1]
+          "questionText": "A fixed pulley holds a weight on the left side. 25 g weights are added one at a time to the right hook until the system balances. What is the weight on the left?",
+          "imagePath": "1-1",
+          "options": ["75g", "100g", "125g", "150g"],
+          "correctAnswer": [1],
+          "experimentConfigs": [
+            {
+              "label": "I",
+              "useFixedPulley": true,
+              "useMovablePulley": false,
+              "fixedPulleyHangerIndex": 2,
+              "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.0 },
+              "weightAssignments": [
+                { "weightName": "weight_100g_1", "target": "Hook_L" },
+                { "weightName": "weight_25g_1", "target": "Hook_R" },
+                { "weightName": "weight_25g_2", "target": "Hook_R" },
+                { "weightName": "weight_25g_3", "target": "Hook_R" },
+                { "weightName": "weight_25g_4", "target": "Hook_R" },
+                { "weightName": "weight_25g_5", "target": "" }
+              ]
+            }
+          ],
+          "demoSequences": [
+            { "label": "A", "useFixedPulley": true, "useMovablePulley": false, "fixedPulleyHangerIndex": 2, "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.0 }, "weightAssignments": [ { "weightName": "weight_100g_1", "target": "Hook_L" }, { "weightName": "weight_25g_1", "target": "Hook_R" } ], "holdOnly": false, "holdSeconds": 0 },
+            { "label": "B", "useFixedPulley": true, "useMovablePulley": false, "fixedPulleyHangerIndex": 2, "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.0 }, "weightAssignments": [ { "weightName": "weight_100g_1", "target": "Hook_L" }, { "weightName": "weight_25g_1", "target": "Hook_R" }, { "weightName": "weight_25g_2", "target": "Hook_R" } ], "holdOnly": false, "holdSeconds": 0 },
+            { "label": "C", "useFixedPulley": true, "useMovablePulley": false, "fixedPulleyHangerIndex": 2, "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.0 }, "weightAssignments": [ { "weightName": "weight_100g_1", "target": "Hook_L" }, { "weightName": "weight_25g_1", "target": "Hook_R" }, { "weightName": "weight_25g_2", "target": "Hook_R" }, { "weightName": "weight_25g_3", "target": "Hook_R" } ], "holdOnly": false, "holdSeconds": 0 },
+            { "label": "D", "useFixedPulley": true, "useMovablePulley": false, "fixedPulleyHangerIndex": 2, "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.0 }, "weightAssignments": [ { "weightName": "weight_100g_1", "target": "Hook_L" }, { "weightName": "weight_25g_1", "target": "Hook_R" }, { "weightName": "weight_25g_2", "target": "Hook_R" }, { "weightName": "weight_25g_3", "target": "Hook_R" }, { "weightName": "weight_25g_4", "target": "Hook_R" } ], "holdOnly": true, "holdSeconds": 2 },
+            { "label": "E", "useFixedPulley": true, "useMovablePulley": false, "fixedPulleyHangerIndex": 2, "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.0 }, "weightAssignments": [ { "weightName": "weight_100g_1", "target": "Hook_L" }, { "weightName": "weight_25g_1", "target": "Hook_R" }, { "weightName": "weight_25g_2", "target": "Hook_R" }, { "weightName": "weight_25g_3", "target": "Hook_R" }, { "weightName": "weight_25g_4", "target": "Hook_R" }, { "weightName": "weight_25g_5", "target": "Hook_R" } ], "holdOnly": true, "holdSeconds": 2 }
+          ]
         },
         "hard": {
-          "questionText": "[PLACEHOLDER] Hard version of question 1",
-          "imagePath": "1",
-          "options": ["Left", "Right", "It will balance", "Don't know"],
-          "correctAnswer": [1]
+          "questionText": "The free end is pulled down 10 cm at a constant speed of 2 m/s. At this instant, how far and how fast does the left weight move?",
+          "imagePath": "1-2",
+          "options": ["Moves up 5cm at 1 m/s", "Moves up 10cm at 2 m/s", "Moves up 20cm at 4 m/s", "Does not move"],
+          "correctAnswer": [1],
+          "experimentConfigs": [
+            {
+              "label": "I",
+              "useFixedPulley": true,
+              "useMovablePulley": false,
+              "fixedPulleyHangerIndex": 2,
+              "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.0 },
+              "weightAssignments": [
+                { "weightName": "weight_100g_1", "target": "Hook_L" }
+              ]
+            }
+          ]
         }
-      },
-      "experimentConfigs": []
+      }
     },
     {
       "id": 2,
       "difficulties": {
         "normal": {
-          "questionText": "Which side will sink?",
-          "imagePath": "2",
-          "options": ["Left", "Right", "It will balance", "Don't know"],
-          "correctAnswer": [2]
+          "questionText": "Each weight shown is 25 g. With no external force applied, what happens in the next second?",
+          "imagePath": "2-1",
+          "options": ["The movable pulley side (3 weights)", "The free end side (2 weights)", "Neither, the system balances", "Both move equally"],
+          "correctAnswer": [1],
+          "experimentConfigs": [
+            {
+              "label": "I",
+              "useFixedPulley": true,
+              "useMovablePulley": true,
+              "fixedPulleyHangerIndex": 2,
+              "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": -0.05 },
+              "weightAssignments": [
+                { "weightName": "weight_25g_1", "target": "MovablePulley" },
+                { "weightName": "weight_25g_2", "target": "MovablePulley" },
+                { "weightName": "weight_25g_3", "target": "MovablePulley" },
+                { "weightName": "weight_25g_4", "target": "Hook_R" },
+                { "weightName": "weight_25g_5", "target": "Hook_R" }
+              ]
+            }
+          ]
         },
         "hard": {
-          "questionText": "[PLACEHOLDER] Hard version of question 2",
-          "imagePath": "2",
-          "options": ["Left", "Right", "It will balance", "Don't know"],
-          "correctAnswer": [2]
+          "questionText": "A 100 g weight hangs from the movable pulley. How many 25 g weights are needed on the free end to balance it?",
+          "imagePath": "2-2",
+          "options": ["1", "2", "3", "4"],
+          "correctAnswer": [1],
+          "experimentConfigs": [
+            {
+              "label": "I",
+              "useFixedPulley": true,
+              "useMovablePulley": true,
+              "fixedPulleyHangerIndex": 2,
+              "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.05 },
+              "weightAssignments": [
+                { "weightName": "weight_100g_1", "target": "MovablePulley" },
+                { "weightName": "weight_25g_1", "target": "Hook_R" },
+                { "weightName": "weight_25g_2", "target": "Hook_R" },
+                { "weightName": "weight_25g_3", "target": "" },
+                { "weightName": "weight_25g_4", "target": "" },
+                { "weightName": "weight_25g_5", "target": "" }
+              ]
+            }
+          ],
+          "demoSequences": [
+  {
+    "label": "A",
+    "useFixedPulley": true,
+    "useMovablePulley": true,
+    "fixedPulleyHangerIndex": 2,
+    "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.05 },
+    "weightAssignments": [
+      { "weightName": "weight_100g_1", "target": "MovablePulley" },
+      { "weightName": "weight_25g_1", "target": "Hook_R" }
+    ],
+    "holdOnly": true,
+    "holdSeconds": 2
+  },
+  {
+    "label": "B",
+    "useFixedPulley": true,
+    "useMovablePulley": true,
+    "fixedPulleyHangerIndex": 2,
+    "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.05 },
+    "weightAssignments": [
+      { "weightName": "weight_100g_1", "target": "MovablePulley" },
+      { "weightName": "weight_25g_1", "target": "Hook_R" },
+      { "weightName": "weight_25g_2", "target": "Hook_R" }
+    ],
+    "holdOnly": true,
+    "holdSeconds": 2
+  },
+  {
+    "label": "C",
+    "useFixedPulley": true,
+    "useMovablePulley": true,
+    "fixedPulleyHangerIndex": 2,
+    "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.05 },
+    "weightAssignments": [
+      { "weightName": "weight_100g_1", "target": "MovablePulley" },
+      { "weightName": "weight_25g_1", "target": "Hook_R" },
+      { "weightName": "weight_25g_2", "target": "Hook_R" },
+      { "weightName": "weight_25g_3", "target": "Hook_R" }
+    ],
+    "holdOnly": true,
+    "holdSeconds": 2
+  }
+]
         }
-      },
-      "experimentConfigs": []
+      }
     },
     {
       "id": 3,
       "difficulties": {
         "normal": {
-          "questionText": "Lift the weight 10cm up. What differences will you feel between these two situations? (Select all that apply)",
-          "imagePath": "3",
-          "options": [
-            "Rope A is heavier than rope B",
-            "Rope B is heavier than rope A",
-            "It takes longer distance in situation A",
-            "It takes longer distance in situation B"
-          ],
-          "correctAnswer": [0, 3]
+          "questionText": "Using the movable pulley, the weight is raised 10 cm. How far must the free end be pulled?",
+          "imagePath": "3-1",
+          "options": ["5cm", "10cm", "20cm", "40cm"],
+          "correctAnswer": [2],
+          "experimentConfigs": [
+            {
+              "label": "II",
+              "useFixedPulley": true,
+              "useMovablePulley": true,
+              "fixedPulleyHangerIndex": 2,
+              "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.05 },
+              "weightAssignments": [
+                { "weightName": "weight_100g_1", "target": "MovablePulley" }
+              ]
+            }
+          ]
         },
         "hard": {
-          "questionText": "[PLACEHOLDER] Hard version of question 3",
-          "imagePath": "3",
-          "options": [
-            "Rope A is heavier than rope B",
-            "Rope B is heavier than rope A",
-            "It takes longer distance in situation A",
-            "It takes longer distance in situation B"
-          ],
-          "correctAnswer": [0, 3]
-        }
-      },
-      "experimentConfigs": [
-        {
-          "label": "A",
-          "useFixedPulley": true,
-          "useMovablePulley": false,
-          "fixedPulleyHangerIndex": 2,
-          "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.0 },
-          "weightAssignments": [
-            { "weightName": "weight_100g_1", "target": "Hook_L" }
-          ]
-        },
-        {
-          "label": "B",
-          "useFixedPulley": true,
-          "useMovablePulley": true,
-          "fixedPulleyHangerIndex": 2,
-          "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.0 },
-          "weightAssignments": [
-            { "weightName": "weight_100g_1", "target": "MovablePulley" }
+          "questionText": "At this instant, the weight moves up at 1 m/s with an acceleration of 0.5 m/s². What are the speed and acceleration of the free end?",
+          "imagePath": "3-2",
+          "options": ["Speed: 1 m/s, Acceleration: 0.5 m/s²", "Speed: 2 m/s, Acceleration: 1 m/s²", "Speed: 0.5 m/s, Acceleration: 0.25 m/s²", "Speed: 2 m/s, Acceleration: 0.5 m/s²"],
+          "correctAnswer": [1],
+          "experimentConfigs": [
+            {
+              "label": "II",
+              "useFixedPulley": true,
+              "useMovablePulley": true,
+              "fixedPulleyHangerIndex": 2,
+              "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.05 },
+              "weightAssignments": [
+                { "weightName": "weight_100g_1", "target": "MovablePulley" }
+              ]
+            }
           ]
         }
-      ]
+      }
     }
   ]
 }

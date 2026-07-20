@@ -6,7 +6,6 @@ public class TouchButton : MonoBehaviour
     [Header("Settings")]
     public float cooldownTime = 1.0f;
     public UnityEvent onTouched;
-
     private bool isOnCooldown = false;
 
     void Start()
@@ -17,7 +16,6 @@ public class TouchButton : MonoBehaviour
         {
             col = gameObject.AddComponent<BoxCollider>();
         }
-
         // Match collider to button size
         RectTransform rect = GetComponent<RectTransform>();
         if (rect != null)
@@ -27,12 +25,22 @@ public class TouchButton : MonoBehaviour
         }
     }
 
+    // Whenever this button becomes active again (e.g. the panel is re-shown
+    // after being hidden while playing), clear any leftover cooldown lock ¡ª
+    // a cooldown coroutine gets silently killed if the GameObject was
+    // deactivated mid-wait, which would otherwise leave isOnCooldown stuck true.
+    void OnEnable()
+    {
+        isOnCooldown = false;
+    }
+
     public void TriggerButton()
     {
+        Debug.Log($"[TouchButton] TriggerButton called on {gameObject.name}, isOnCooldown={isOnCooldown}");
         if (isOnCooldown) return;
         Debug.Log("Button triggered: " + gameObject.name);
-        onTouched.Invoke();
         StartCoroutine(StartCooldown());
+        onTouched.Invoke();
     }
 
     System.Collections.IEnumerator StartCooldown()

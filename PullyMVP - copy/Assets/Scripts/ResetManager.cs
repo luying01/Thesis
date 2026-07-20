@@ -161,6 +161,19 @@ public class ResetManager : MonoBehaviour
             }
         }
 
+        // ── Step 9: Re-apply auto-snap for slots configured to hold a pulley at start ──
+        PulleySlot[] slotsForResnap = FindObjectsOfType<PulleySlot>();
+        foreach (PulleySlot slot in slotsForResnap)
+        {
+            slot.ApplyAutoSnapIfConfigured();
+        }
+
         Debug.Log("ResetManager: Reset complete.");
+    }
+    public Vector3 GetInitialPosition(GameObject obj)
+    {
+        for (int i = 0; i < objectsToReset.Length; i++)
+            if (objectsToReset[i] == obj) return initialPositions[i];
+        return obj.transform.position;
     }
 }

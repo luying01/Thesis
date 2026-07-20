@@ -7,7 +7,6 @@ using System.IO;
 using System.Linq;
 
 // ©¤©¤ Data Classes ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
-// Note: WeightAssignment, ExperimentConfig, Vector3Data defined in ExperimentConfigManager.cs
 
 [System.Serializable]
 public class DifficultySetting
@@ -16,6 +15,8 @@ public class DifficultySetting
     public string imagePath;
     public string[] options;
     public int[] correctAnswer;
+    public ExperimentConfig[] experimentConfigs;
+    public ExperimentConfig[] demoSequences;
 }
 
 [System.Serializable]
@@ -30,7 +31,6 @@ public class Question
 {
     public int id;
     public Difficulties difficulties;
-    public ExperimentConfig[] experimentConfigs;
 }
 
 [System.Serializable]
@@ -38,8 +38,6 @@ public class QuestionList
 {
     public Question[] questions;
 }
-
-// ©¤©¤ QuizManager ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
 
 public class QuizManager : MonoBehaviour
 {
@@ -49,6 +47,8 @@ public class QuizManager : MonoBehaviour
     public Image questionImage;
     public Button prevButton;
     public Button nextButton;
+    public TextMeshProUGUI nextButtonText;
+    public TextMeshProUGUI feedbackText;
 
     [Header("Config Buttons")]
     public GameObject configButtonPrefab;
@@ -56,9 +56,14 @@ public class QuizManager : MonoBehaviour
 
     [Header("References")]
     public ExperimentConfigManager experimentConfigManager;
+    public FidelityManager fidelityManager;
+    public DemoPlayButtonController demoPlayButtonController;
 
     [Header("Selection Indicator")]
     public GameObject selectionRing;
+
+    [Header("Difficulty Upgrade Timing")]
+    public float upgradeDelaySeconds = 1.2f;
 
     // ©¤©¤ Internal State ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
 
@@ -68,15 +73,34 @@ public class QuizManager : MonoBehaviour
     private List<int> selectedAnswers = new List<int>();
     private List<int>[] studentAnswers;
     private List<GameObject> spawnedConfigButtons = new List<GameObject>();
+    private ExperimentConfig[] currentExperimentConfigs;
+
+    private bool awaitingConfirm = true;
+
+    // Tracks whether the student ever answered wrong on THIS question's normal
+    // version. Needed because condition A requires answering correctly on the
+    // first attempt, not just eventually.
+    private bool[] normalHadWrongAttempt;
+
+    // ©¤©¤ Difficulty Flow State ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    private enum FlowPhase { NormalRound, ImmediateHardInterrupt, HardBackfill }
+    private FlowPhase flowPhase = FlowPhase.NormalRound;
+
+    private bool[] hardPending;
+    private bool[] hardShown;
+    private bool quizFinished = false;
+
+    private List<int> backfillQueue = new List<int>();
+    private int backfillPointer = -1;
+
+    private bool showingThankYou = false;
 
     // ©¤©¤ Unity Lifecycle ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
 
     void Start()
     {
-        LoadQuestions();
-
         prevButton.onClick.AddListener(PrevQuestion);
-        nextButton.onClick.AddListener(NextQuestion);
+        nextButton.onClick.AddListener(OnConfirmOrNext);
 
         for (int i = 0; i < optionButtons.Length; i++)
         {
@@ -84,41 +108,88 @@ public class QuizManager : MonoBehaviour
             optionButtons[i].onClick.AddListener(() => SelectAnswer(index));
         }
 
-        DisplayQuestion(currentIndex);
+        StartCoroutine(LoadQuestionsCoroutine());
     }
 
     // ©¤©¤ Load ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
 
-    void LoadQuestions()
+    IEnumerator LoadQuestionsCoroutine()
     {
         string path = Path.Combine(Application.streamingAssetsPath, "questions.json");
-        if (!File.Exists(path))
+        string url = path;
+        if (!url.Contains("://"))
+            url = "file://" + url;
+
+        using (UnityEngine.Networking.UnityWebRequest request = UnityEngine.Networking.UnityWebRequest.Get(url))
         {
-            Debug.LogError("[QuizManager] questions.json not found at: " + path);
-            return;
+            yield return request.SendWebRequest();
+
+            if (request.result != UnityEngine.Networking.UnityWebRequest.Result.Success)
+            {
+                Debug.LogError("[QuizManager] Failed to load questions.json: " + request.error + " | URL: " + url);
+                yield break;
+            }
+
+            string json = request.downloadHandler.text;
+
+            if (string.IsNullOrEmpty(json))
+            {
+                Debug.LogError("[QuizManager] questions.json is empty at: " + url);
+                yield break;
+            }
+
+            quizData = JsonUtility.FromJson<QuestionList>(json);
+
+            if (quizData == null || quizData.questions == null || quizData.questions.Length == 0)
+            {
+                Debug.LogError("[QuizManager] questions.json parsed but contains no questions.");
+                yield break;
+            }
+
+            int count = quizData.questions.Length;
+            studentAnswers = new List<int>[count];
+            hardPending = new bool[count];
+            hardShown = new bool[count];
+            normalHadWrongAttempt = new bool[count];
+            for (int i = 0; i < count; i++)
+            {
+                studentAnswers[i] = new List<int>();
+                hardPending[i] = false;
+                hardShown[i] = false;
+                normalHadWrongAttempt[i] = false;
+            }
+
+            flowPhase = FlowPhase.NormalRound;
+            quizFinished = false;
+            showingThankYou = false;
+            backfillQueue.Clear();
+            backfillPointer = -1;
+
+            Debug.Log($"[QuizManager] Loaded {count} questions successfully.");
+
+            DisplayQuestion(currentIndex);
+            SetConfirmMode();
         }
+    }
 
-        string json = File.ReadAllText(path);
-        quizData = JsonUtility.FromJson<QuestionList>(json);
+    // ©¤©¤ Helpers ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
 
-        studentAnswers = new List<int>[quizData.questions.Length];
-        for (int i = 0; i < studentAnswers.Length; i++)
-            studentAnswers[i] = new List<int>();
+    private DifficultySetting GetCurrentDifficultySetting()
+    {
+        Question q = quizData.questions[currentIndex];
+        return currentDifficulty == "hard" ? q.difficulties.hard : q.difficulties.normal;
     }
 
     // ©¤©¤ Display ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
 
     void DisplayQuestion(int index)
     {
-        Question q = quizData.questions[index];
-        DifficultySetting d = currentDifficulty == "hard"
-            ? q.difficulties.hard
-            : q.difficulties.normal;
+        if (demoPlayButtonController != null) demoPlayButtonController.ForceStop();
+        if (experimentConfigManager != null) experimentConfigManager.StopCurrentDemo();
+        DifficultySetting d = GetCurrentDifficultySetting();
 
-        // Question text
-        questionText.text = q.id + ". " + d.questionText;
+        questionText.text = d.imagePath + ". " + d.questionText;
 
-        // Answer buttons
         string[] labels = { "A", "B", "C", "D" };
         for (int i = 0; i < optionButtons.Length; i++)
         {
@@ -126,7 +197,6 @@ public class QuizManager : MonoBehaviour
             btnText.text = labels[i] + ". " + d.options[i];
         }
 
-        // Image
         if (!string.IsNullOrEmpty(d.imagePath))
         {
             questionImage.gameObject.SetActive(true);
@@ -137,21 +207,279 @@ public class QuizManager : MonoBehaviour
             questionImage.gameObject.SetActive(false);
         }
 
-        // Restore previous selections
         selectedAnswers = new List<int>(studentAnswers[index]);
         UpdateSelectionDisplay();
 
-        // Config buttons
-        SpawnConfigButtons(q.experimentConfigs);
+        currentExperimentConfigs = d.experimentConfigs;
+        SpawnConfigButtons(currentExperimentConfigs);
 
-        // Nav buttons
-        prevButton.interactable = (index > 0);
-        nextButton.interactable = (index < quizData.questions.Length - 1);
+        if (flowPhase == FlowPhase.HardBackfill || flowPhase == FlowPhase.ImmediateHardInterrupt)
+            prevButton.interactable = true;
+        else
+            prevButton.interactable = (currentIndex > 0);
 
-        // Load default config (first config) for this question
-        if (q.experimentConfigs != null && q.experimentConfigs.Length > 0)
+        if (currentExperimentConfigs != null && currentExperimentConfigs.Length > 0)
+        {
             if (experimentConfigManager != null)
-                experimentConfigManager.ApplyConfig(q.experimentConfigs[0]);
+                experimentConfigManager.ApplyConfig(currentExperimentConfigs[0]);
+        }
+        else
+        {
+            if (experimentConfigManager != null)
+                experimentConfigManager.ShowAllEquipment();
+        }
+
+        SetConfirmMode();
+        ClearFeedback();
+    }
+
+    // ©¤©¤ Confirm / Next / Finish ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+
+    public void OnConfirmOrNext()
+    {
+        if (quizFinished)
+        {
+            OnFinish();
+            return;
+        }
+
+        if (awaitingConfirm)
+            ConfirmAnswer();
+        else
+            NextQuestion();
+    }
+
+    private void ConfirmAnswer()
+    {
+        if (selectedAnswers.Count == 0)
+        {
+            ShowFeedback("Please select an answer first", Color.yellow);
+            return;
+        }
+
+        DifficultySetting d = GetCurrentDifficultySetting();
+        bool correct = IsAnswerCorrect(selectedAnswers, d.correctAnswer);
+
+        if (correct)
+        {
+            bool triggerImmediateHard = false;
+
+            if (currentDifficulty == "normal")
+            {
+                hardPending[currentIndex] = true;
+
+                // Condition A: first-attempt correct AND CL was Level 3 at the time.
+                bool clWasLevel3 = fidelityManager != null && fidelityManager.GetCurrentLevel() == 3;
+                bool firstAttemptCorrect = !normalHadWrongAttempt[currentIndex];
+                triggerImmediateHard = clWasLevel3 && firstAttemptCorrect;
+            }
+
+            bool willFinish = false;
+            if (currentDifficulty == "hard")
+                willFinish = ComputeIsLastRemainingAfterThisHard();
+
+            ShowFeedback("CORRECT", Color.green);
+
+            if (willFinish)
+                EnterFinishedState();
+            else
+                SetNextMode();
+
+            if (triggerImmediateHard)
+                StartCoroutine(DelayedImmediateHardSwitch());
+        }
+        else
+        {
+            if (currentDifficulty == "normal")
+                normalHadWrongAttempt[currentIndex] = true;
+
+            ShowFeedback("WRONG", Color.red);
+            selectedAnswers.Clear();
+            studentAnswers[currentIndex] = new List<int>();
+            UpdateSelectionDisplay();
+        }
+    }
+
+    private void SetConfirmMode()
+    {
+        awaitingConfirm = true;
+        if (nextButtonText != null)
+            nextButtonText.text = "Confirm";
+    }
+
+    private void SetNextMode()
+    {
+        awaitingConfirm = false;
+        if (nextButtonText != null)
+            nextButtonText.text = "Next >";
+    }
+
+    private void EnterFinishedState()
+    {
+        quizFinished = true;
+        awaitingConfirm = false;
+        if (nextButtonText != null)
+            nextButtonText.text = "Finish";
+    }
+
+    private void OnFinish()
+    {
+        SaveResults();
+        ShowThankYouScreen();
+        Debug.Log("[QuizManager] Quiz finished - all questions completed.");
+    }
+
+    // ©¤©¤ Thank You Screen ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+
+    private void ShowThankYouScreen()
+    {
+        showingThankYou = true;
+
+        questionText.text = "Thank you for completing the experiment!";
+        questionImage.gameObject.SetActive(false);
+
+        foreach (Button b in optionButtons)
+            b.gameObject.SetActive(false);
+
+        if (configButtonContainer != null)
+            configButtonContainer.gameObject.SetActive(false);
+
+        ClearFeedback();
+
+        // Defer disabling the Next/Finish button by a frame so any coroutine
+        // started by this same click (e.g. the button's own press animation)
+        // has a chance to run before the GameObject goes inactive.
+        StartCoroutine(DeactivateNextButtonNextFrame());
+
+        prevButton.interactable = true;
+    }
+
+    private IEnumerator DeactivateNextButtonNextFrame()
+    {
+        yield return null;
+        nextButton.gameObject.SetActive(false);
+    }
+
+    private void RestoreQuestionUI()
+    {
+        foreach (Button b in optionButtons)
+            b.gameObject.SetActive(true);
+        nextButton.gameObject.SetActive(true);
+    }
+
+    // ©¤©¤ Feedback Stamp ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+
+    private void ShowFeedback(string message, Color color)
+    {
+        if (feedbackText == null) return;
+        feedbackText.gameObject.SetActive(true);
+
+        feedbackText.text = $"<color=#{ColorUtility.ToHtmlStringRGB(color)}>" +
+                            $"<size=120%><b>{message}</b></size></color>";
+
+        feedbackText.outlineWidth = 0.3f;
+        feedbackText.outlineColor = new Color32(
+            (byte)(color.r * 0.5f * 255),
+            (byte)(color.g * 0.5f * 255),
+            (byte)(color.b * 0.5f * 255),
+            255);
+    }
+
+    private void ClearFeedback()
+    {
+        if (feedbackText == null) return;
+        feedbackText.gameObject.SetActive(false);
+        feedbackText.text = "";
+    }
+
+    // ©¤©¤ Difficulty Flow ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+
+    private IEnumerator DelayedImmediateHardSwitch()
+    {
+        yield return new WaitForSeconds(upgradeDelaySeconds);
+        flowPhase = FlowPhase.ImmediateHardInterrupt;
+        currentDifficulty = "hard";
+        studentAnswers[currentIndex] = new List<int>();
+        DisplayQuestion(currentIndex);
+    }
+
+    private bool AnyHardPendingRemaining()
+    {
+        for (int i = 0; i < hardPending.Length; i++)
+            if (hardPending[i] && !hardShown[i]) return true;
+        return false;
+    }
+
+    private bool ComputeIsLastRemainingAfterThisHard()
+    {
+        hardShown[currentIndex] = true;
+
+        if (flowPhase == FlowPhase.ImmediateHardInterrupt)
+        {
+            if (currentIndex < quizData.questions.Length - 1)
+                return false;
+
+            return !AnyHardPendingRemaining();
+        }
+
+        if (flowPhase == FlowPhase.HardBackfill)
+        {
+            return !AnyHardPendingRemaining();
+        }
+
+        return false;
+    }
+
+    private void StartHardBackfillOrFinish()
+    {
+        backfillQueue = new List<int>();
+        for (int i = 0; i < hardPending.Length; i++)
+            if (hardPending[i] && !hardShown[i]) backfillQueue.Add(i);
+
+        if (backfillQueue.Count == 0)
+        {
+            EnterFinishedState();
+            return;
+        }
+
+        flowPhase = FlowPhase.HardBackfill;
+        backfillPointer = 0;
+        currentIndex = backfillQueue[0];
+        currentDifficulty = "hard";
+        studentAnswers[currentIndex] = new List<int>();
+        DisplayQuestion(currentIndex);
+    }
+
+    private void AdvanceHardBackfill()
+    {
+        backfillPointer++;
+        if (backfillPointer >= backfillQueue.Count)
+        {
+            EnterFinishedState();
+            return;
+        }
+
+        currentIndex = backfillQueue[backfillPointer];
+        currentDifficulty = "hard";
+        studentAnswers[currentIndex] = new List<int>();
+        DisplayQuestion(currentIndex);
+    }
+
+    private void RetreatHardBackfill()
+    {
+        if (backfillPointer <= 0)
+        {
+            flowPhase = FlowPhase.NormalRound;
+            currentIndex = quizData.questions.Length - 1;
+            currentDifficulty = "normal";
+            DisplayQuestion(currentIndex);
+            return;
+        }
+
+        backfillPointer--;
+        currentIndex = backfillQueue[backfillPointer];
+        currentDifficulty = "hard";
+        DisplayQuestion(currentIndex);
     }
 
     // ©¤©¤ Config Buttons ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
@@ -162,7 +490,7 @@ public class QuizManager : MonoBehaviour
             Destroy(btn);
         spawnedConfigButtons.Clear();
 
-        if (configs == null || configs.Length == 0)
+        if (configs == null || configs.Length <= 1)
         {
             if (configButtonContainer != null)
                 configButtonContainer.gameObject.SetActive(false);
@@ -179,7 +507,9 @@ public class QuizManager : MonoBehaviour
             btn.GetComponentInChildren<TextMeshProUGUI>().text = config.label;
 
             int capturedIndex = i;
-            btn.GetComponent<Button>().onClick.AddListener(() => OnConfigSelected(capturedIndex));
+            TouchButton tb = btn.GetComponent<TouchButton>();
+            if (tb != null)
+                tb.onTouched.AddListener(() => OnConfigSelected(capturedIndex));
 
             spawnedConfigButtons.Add(btn);
         }
@@ -187,10 +517,9 @@ public class QuizManager : MonoBehaviour
 
     void OnConfigSelected(int configIndex)
     {
-        Question q = quizData.questions[currentIndex];
-        if (configIndex < 0 || configIndex >= q.experimentConfigs.Length) return;
+        if (currentExperimentConfigs == null ||
+            configIndex < 0 || configIndex >= currentExperimentConfigs.Length) return;
 
-        // Highlight selected button
         for (int i = 0; i < spawnedConfigButtons.Count; i++)
         {
             Image img = spawnedConfigButtons[i].GetComponent<Image>();
@@ -201,25 +530,17 @@ public class QuizManager : MonoBehaviour
         }
 
         if (experimentConfigManager != null)
-            experimentConfigManager.ApplyConfig(q.experimentConfigs[configIndex]);
+            experimentConfigManager.ApplyConfig(currentExperimentConfigs[configIndex]);
 
-        Debug.Log($"[QuizManager] Config selected: {q.experimentConfigs[configIndex].label}");
-    }
-
-    // ©¤©¤ Difficulty Switching ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
-
-    public void SetDifficulty(string difficulty)
-    {
-        if (currentDifficulty == difficulty) return;
-        currentDifficulty = difficulty;
-        DisplayQuestion(currentIndex);
-        Debug.Log($"[QuizManager] Difficulty changed to: {difficulty}");
+        Debug.Log($"[QuizManager] Config selected: {currentExperimentConfigs[configIndex].label}");
     }
 
     // ©¤©¤ Answer Selection ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
 
     public void SelectAnswer(int answerIndex)
     {
+        if (!awaitingConfirm) return;
+
         if (selectedAnswers.Contains(answerIndex))
             selectedAnswers.Remove(answerIndex);
         else
@@ -253,11 +574,36 @@ public class QuizManager : MonoBehaviour
 
     public void PrevQuestion()
     {
+        if (showingThankYou)
+        {
+            showingThankYou = false;
+            RestoreQuestionUI();
+            quizFinished = false;
+            DisplayQuestion(currentIndex);
+            return;
+        }
+
         SaveResults();
-        FindObjectOfType<ResetManager>().ResetAll();
+        FindFirstObjectByType<ResetManager>().ResetAll();
+
+        if (flowPhase == FlowPhase.HardBackfill)
+        {
+            RetreatHardBackfill();
+            return;
+        }
+
+        if (flowPhase == FlowPhase.ImmediateHardInterrupt)
+        {
+            flowPhase = FlowPhase.NormalRound;
+            currentDifficulty = "normal";
+            DisplayQuestion(currentIndex);
+            return;
+        }
+
         if (currentIndex > 0)
         {
             currentIndex--;
+            currentDifficulty = "normal";
             DisplayQuestion(currentIndex);
         }
     }
@@ -265,11 +611,40 @@ public class QuizManager : MonoBehaviour
     public void NextQuestion()
     {
         SaveResults();
-        FindObjectOfType<ResetManager>().ResetAll();
+        FindFirstObjectByType<ResetManager>().ResetAll();
+
+        if (flowPhase == FlowPhase.ImmediateHardInterrupt)
+        {
+            flowPhase = FlowPhase.NormalRound;
+            currentDifficulty = "normal";
+
+            if (currentIndex < quizData.questions.Length - 1)
+            {
+                currentIndex++;
+                DisplayQuestion(currentIndex);
+            }
+            else
+            {
+                StartHardBackfillOrFinish();
+            }
+            return;
+        }
+
+        if (flowPhase == FlowPhase.HardBackfill)
+        {
+            AdvanceHardBackfill();
+            return;
+        }
+
         if (currentIndex < quizData.questions.Length - 1)
         {
             currentIndex++;
+            currentDifficulty = "normal";
             DisplayQuestion(currentIndex);
+        }
+        else
+        {
+            StartHardBackfillOrFinish();
         }
     }
 
@@ -316,15 +691,14 @@ public class QuizManager : MonoBehaviour
         for (int i = 0; i < studentAnswers.Length; i++)
         {
             Question q = quizData.questions[i];
-            DifficultySetting d = currentDifficulty == "hard"
-                ? q.difficulties.hard
-                : q.difficulties.normal;
+            string diffLabel = hardShown[i] ? "hard" : "normal";
+            DifficultySetting d = hardShown[i] ? q.difficulties.hard : q.difficulties.normal;
 
             bool isCorrect = IsAnswerCorrect(studentAnswers[i], d.correctAnswer);
             string selectedStr = string.Join(",", studentAnswers[i]);
 
             result += "\n    {\"questionId\": " + q.id +
-                      ", \"difficulty\": \"" + currentDifficulty + "\"" +
+                      ", \"difficulty\": \"" + diffLabel + "\"" +
                       ", \"selected\": [" + selectedStr + "]" +
                       ", \"correct\": " + (isCorrect ? "true" : "false") + "}";
             if (i < studentAnswers.Length - 1) result += ",";
@@ -334,5 +708,10 @@ public class QuizManager : MonoBehaviour
         string savePath = Path.Combine(Application.persistentDataPath, "quiz_results.json");
         File.WriteAllText(savePath, result);
         Debug.Log("[QuizManager] Results saved to: " + savePath);
+    }
+    public DifficultySetting GetCurrentDifficultySettingPublic()
+    {
+        if (quizData == null) return null;
+        return GetCurrentDifficultySetting();
     }
 }

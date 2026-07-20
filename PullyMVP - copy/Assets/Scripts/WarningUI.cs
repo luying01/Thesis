@@ -8,16 +8,12 @@ public class WarningUI : MonoBehaviour
     [Header("UI Reference")]
     public TextMeshProUGUI warningText;
     public CanvasGroup canvasGroup;
-    public Image background;                // Semi-transparent background panel
-
-    [Header("Billboard")]
-    public Camera mainCamera;
-    public Transform fixedPulley;
+    public Image background;
 
     [Header("Settings")]
     public float displayDuration = 2f;
     public float fadeDuration = 0.5f;
-    public float backgroundAlpha = 0.7f;    // Background transparency
+    public float backgroundAlpha = 0.7f;
 
     [Header("Free End Angle Detection")]
     public PulleyPhysics pulleyPhysics;
@@ -26,8 +22,10 @@ public class WarningUI : MonoBehaviour
 
     [Header("Connecting Rope Angle Detection")]
     public PulleySystem pulleySystem;
+    public MovablePulleyLock movablePulleyLock;
     public float connectingRopeWarningAngle = 20f;
     public string connectingRopeWarningMessage = "Try to keep the connecting rope vertical";
+    public FidelityManager fidelityManager;
 
     private Coroutine fadeCoroutine;
     private bool isShowing = false;
@@ -38,18 +36,17 @@ public class WarningUI : MonoBehaviour
         warningText.text = "";
         warningText.alpha = 0f;
         SetBackgroundAlpha(0f);
-
-        if (mainCamera == null)
-            mainCamera = Camera.main;
     }
 
     void Update()
     {
         if (pulleyPhysics == null) return;
 
+        // Free end angle should be checked regardless of single or movable pulley config
+        CheckFreeEndAngle();
+
         if (pulleyPhysics.IsMovablePulleyConfig())
         {
-            CheckFreeEndAngle();
             CheckConnectingRopeAngle();
         }
     }
@@ -84,8 +81,28 @@ public class WarningUI : MonoBehaviour
 
     private void CheckConnectingRopeAngle()
     {
+        // This warning is only meaningful when the student is manually assembling
+        // the setup in high fidelity ¡ª skip entirely during low-fidelity automated
+        // playback (Play button demos / static equip), where the pulley may
+        // briefly sit locked with no weight attached between steps.
+        if (fidelityManager != null)
+        {
+            int level = fidelityManager.GetCurrentLevel();
+            bool isHighFidelity = (level == 2 || level == 3);
+            if (!isHighFidelity) return;
+        }
+
         if (pulleySystem == null) return;
         if (pulleySystem.cachedFixedSlot == null) return;
+
+        // Only check when movable pulley is locked (snapped)
+        if (movablePulleyLock == null || !movablePulleyLock.isLocked) return;
+
+        // Only check before any weight is attached
+        if (pulleyPhysics.weightChainLoad != null) return;
+        if (pulleyPhysics.weightChainForce != null) return;
+        if (pulleyPhysics.weightChainLeft != null) return;
+        if (pulleyPhysics.weightChainRight != null) return;
 
         var lockedField = typeof(PulleySystem).GetField("lockedMovablePulley",
             System.Reflection.BindingFlags.NonPublic |
@@ -133,14 +150,11 @@ public class WarningUI : MonoBehaviour
         isShowing = true;
         warningText.text = message;
         canvasGroup.alpha = 1f;
-
-        // Text fully opaque, background semi-transparent
         warningText.alpha = 1f;
         SetBackgroundAlpha(backgroundAlpha);
 
         yield return new WaitForSeconds(displayDuration);
 
-        // Fade out
         float elapsed = 0f;
         while (elapsed < fadeDuration)
         {

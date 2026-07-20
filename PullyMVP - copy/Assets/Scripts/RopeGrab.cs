@@ -39,6 +39,22 @@ public class RopeGrab : MonoBehaviour
 
             // Auto-detect which controller is grabbing for haptics
             hapticController = actionController;
+
+            // Start distance tracking the first time this hook is ever grabbed,
+            // so the conceptual aid ruler works even when no weight is attached
+            if (pulleyPhysics != null)
+            {
+                bool isThisHookLeft = pulleyPhysics.hookLeft == this.transform;
+                bool alreadyTracking = isThisHookLeft
+                    ? pulleyPhysics.IsTrackingHookL()
+                    : pulleyPhysics.IsTrackingHookR();
+
+                if (!alreadyTracking)
+                {
+                    string endpointName = isThisHookLeft ? "HookL" : "HookR";
+                    pulleyPhysics.StartLoadTracking(endpointName, transform.position);
+                }
+            }
         }
     }
 

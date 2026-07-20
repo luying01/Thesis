@@ -49,6 +49,9 @@ public class PulleyPhysics : MonoBehaviour
     private bool trackingHookR = false;
     private bool trackingMovablePulley = false;
 
+    // Load-side (movable pulley) trigger-drag state
+    private bool loadGrabbed = false;
+
     private float g = 9.81f;
     private float loadY;
     private float forceY;
@@ -72,6 +75,8 @@ public class PulleyPhysics : MonoBehaviour
         InitLine(lineHookL);
         InitLine(lineHookR);
         InitLine(lineMovablePulley);
+
+        UpdateDeadEndHookVisibility();
     }
 
     void FixedUpdate()
@@ -188,9 +193,16 @@ public class PulleyPhysics : MonoBehaviour
             forceY = freeEndHook.position.y;
             velocity = 0f;
 
-            // Calculate tension when student is pulling free end
             float loadMassGrabbed = weightChainLoad != null ? GetChainMass(weightChainLoad) : 0f;
             tensionForce = loadMassGrabbed * g / MA;
+        }
+        else if (loadGrabbed)
+        {
+            // loadY / forceY / movable pulley position were already updated
+            // directly by DragLoadTo(), called from MovablePulleyLock's trigger-drag.
+            float loadMassGrabbed = weightChainLoad != null ? GetChainMass(weightChainLoad) : 0f;
+            tensionForce = loadMassGrabbed * g / MA;
+            velocity = 0f;
         }
         else if (loadMass == 0f && forceMass == 0f)
         {
@@ -227,7 +239,7 @@ public class PulleyPhysics : MonoBehaviour
         }
 
         Transform movablePulley = movablePulleyBottom?.parent;
-        if (movablePulley != null)
+        if (movablePulley != null && !loadGrabbed)
             movablePulley.position = new Vector3(
                 movablePulley.position.x, loadY, movablePulley.position.z);
 
@@ -243,10 +255,21 @@ public class PulleyPhysics : MonoBehaviour
             distanceMovablePulley = Vector3.Distance(movablePulleyBottom.position, startPositionMovablePulley);
             AppendLine(lineMovablePulley, movablePulleyBottom.position);
         }
-        if (trackingHookR && freeEndHook != null)
+
+        if (freeEndHook != null)
         {
-            distanceHookR = Vector3.Distance(freeEndHook.position, startPositionHookR);
-            AppendLine(lineHookR, freeEndHook.position);
+            bool freeEndIsLeft = (freeEndHook == hookLeft);
+
+            if (freeEndIsLeft && trackingHookL)
+            {
+                distanceHookL = Vector3.Distance(freeEndHook.position, startPositionHookL);
+                AppendLine(lineHookL, freeEndHook.position);
+            }
+            else if (!freeEndIsLeft && trackingHookR)
+            {
+                distanceHookR = Vector3.Distance(freeEndHook.position, startPositionHookR);
+                AppendLine(lineHookR, freeEndHook.position);
+            }
         }
 
         if (weightChainLoad != null && movablePulleyBottom != null)
@@ -346,6 +369,7 @@ public class PulleyPhysics : MonoBehaviour
         acceleration = 0f;
         tensionForce = 0f;
         velocity = 0f;
+        loadGrabbed = false;
 
         if (lineHookL != null) lineHookL.positionCount = 0;
         if (lineHookR != null) lineHookR.positionCount = 0;
@@ -354,12 +378,19 @@ public class PulleyPhysics : MonoBehaviour
 
     // ── Existing Methods ──────────────────────────────────────────
 
+    public Transform GetFreeEndHook()
+    {
+        return freeEndHook;
+    }
+
     public void SetFreeEndHook(Transform hook)
     {
         freeEndHook = hook;
         if (hook != null)
             forceY = hook.position.y;
         Debug.Log("Free end hook set to: " + hook?.name);
+
+        UpdateDeadEndHookVisibility();
     }
 
     public void SetFixedPulleyRef(Transform fixedSlot)
@@ -376,6 +407,101 @@ public class PulleyPhysics : MonoBehaviour
             forceY = freeEndHook.position.y;
             velocity = 0f;
             Debug.Log("Rope length MA2 initialized: " + totalRopeLengthMA2);
+        }
+    }
+
+    // Resets only the rope's vertical geometry (movable pulley + free end Y
+    // position) back to a neutral state — used between demo sequence steps so
+    // weights can be re-delivered from a clean rope position, WITHOUT touching
+    // the pulley's X/Z placement or lock state.
+    public void ResetRopeGeometry(float neutralLoadY, float neutralForceY)
+    {
+        loadY = neutralLoadY;
+        forceY = neutralForceY;
+        velocity = 0f;
+
+        Transform movablePulleyTransform = movablePulleyBottom != null ? movablePulleyBottom.parent : null;
+        if (movablePulleyTransform != null)
+            movablePulleyTransform.position = new Vector3(
+                movablePulleyTransform.position.x, neutralLoadY, movablePulleyTransform.position.z);
+
+        if (freeEndHook != null)
+            freeEndHook.position = new Vector3(
+                freeEndHook.position.x, neutralForceY, freeEndHook.position.z);
+    }
+
+    // ── Load-Side Trigger Drag (drives the movable pulley when it's grabbed by trigger) ──
+
+    public void SetLoadGrabbed(bool grabbed)
+    {
+        loadGrabbed = grabbed;
+        if (!grabbed) velocity = 0f;
+    }
+
+    public bool IsLoadGrabbed() => loadGrabbed;
+
+    public Vector3 GetMovablePulleyPosition()
+    {
+        Transform movablePulley = movablePulleyBottom?.parent;
+        if (movablePulley != null) return movablePulley.position;
+        return movablePulleyBottom != null ? movablePulleyBottom.position : Vector3.zero;
+    }
+
+    // Called every frame while the player drags the movable pulley with trigger.
+    // Mirrors the freeEndGrabbed branch, but drives from the load (movable pulley) side.
+    public void DragLoadTo(Vector3 desiredPosition)
+    {
+        if (fixedPulleySlotRef == null) return;
+
+        float fixedY = fixedPulleySlotRef.position.y;
+
+        float d1 = Mathf.Abs(fixedY - desiredPosition.y);
+        float minD1 = 0.01f;
+        float maxD1 = Mathf.Max(minD1, (totalRopeLengthMA2 - 0.01f) / 2f);
+        d1 = Mathf.Clamp(d1, minD1, maxD1);
+
+        loadY = fixedY - d1;
+
+        float d2 = totalRopeLengthMA2 - d1 * 2f;
+        d2 = Mathf.Max(d2, 0.01f);
+        forceY = fixedY - d2;
+
+        velocity = 0f;
+
+        Transform movablePulley = movablePulleyBottom?.parent;
+        if (movablePulley != null)
+            movablePulley.position = new Vector3(desiredPosition.x, loadY, desiredPosition.z);
+    }
+
+    // ── Dead-End Hook Model Visibility ─────────────────────────────
+
+    private void UpdateDeadEndHookVisibility()
+    {
+        bool isMA2 = IsMovablePulleyConfig();
+
+        if (!isMA2)
+        {
+            SetHookShapeVisible(hookLeft, true);
+            SetHookShapeVisible(hookRight, true);
+            return;
+        }
+
+        if (freeEndHook == null) return;
+
+        Transform deadEnd = (freeEndHook == hookLeft) ? hookRight : hookLeft;
+        Transform liveEnd = (freeEndHook == hookLeft) ? hookLeft : hookRight;
+
+        SetHookShapeVisible(liveEnd, true);
+        SetHookShapeVisible(deadEnd, false);
+    }
+
+    private void SetHookShapeVisible(Transform hook, bool visible)
+    {
+        if (hook == null) return;
+        foreach (Transform child in hook)
+        {
+            if (child.name.Contains("HookShape"))
+                child.gameObject.SetActive(visible);
         }
     }
 

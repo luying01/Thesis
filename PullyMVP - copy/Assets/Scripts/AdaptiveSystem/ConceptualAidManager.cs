@@ -47,6 +47,8 @@ public class ConceptualAidManager : MonoBehaviour
     private AidGroup groupHookL;
     private AidGroup groupHookR;
     private AidGroup groupMovablePulley;
+    //private AidGroup groupFreeEnd;
+    //private Transform lastFreeEndAnchor = null;
     private bool aidEnabled = false;
 
     // ── Ruler Tick Pool ───────────────────────────────────────────
@@ -199,6 +201,7 @@ public class ConceptualAidManager : MonoBehaviour
         groupHookL.SetActive(false);
         groupHookR.SetActive(false);
         groupMovablePulley.SetActive(false);
+        // groupFreeEnd is created lazily once pulleyPhysics reports a free end hook
     }
 
     void Update()
@@ -210,10 +213,12 @@ public class ConceptualAidManager : MonoBehaviour
         UpdateGroupHookL(isMA2);
         UpdateGroupHookR(isMA2);
         UpdateGroupMovablePulley(isMA2);
+        //UpdateGroupFreeEnd();
 
         groupHookL.UpdateBillboard(mainCamera);
         groupHookR.UpdateBillboard(mainCamera);
         groupMovablePulley.UpdateBillboard(mainCamera);
+        //groupFreeEnd?.UpdateBillboard(mainCamera);
     }
 
     // ── Create Aid Group ──────────────────────────────────────────
@@ -458,6 +463,7 @@ public class ConceptualAidManager : MonoBehaviour
             Mathf.Clamp(Mathf.Abs(a) * accelerationScale, 0, maxArrowLength),
             Mathf.Abs(a), arrowHeadSize, minValueThreshold);
     }
+    
 
     // ── Distance Ruler ────────────────────────────────────────────
 
@@ -537,6 +543,7 @@ public class ConceptualAidManager : MonoBehaviour
         groupHookL?.SetActive(enabled);
         groupHookR?.SetActive(enabled);
         groupMovablePulley?.SetActive(enabled);
+        //groupFreeEnd?.SetActive(enabled);
         Debug.Log($"[ConceptualAidManager] Aid {(enabled ? "ON" : "OFF")}");
     }
 }
