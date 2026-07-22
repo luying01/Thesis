@@ -88,11 +88,11 @@ public class DemoPlayButtonController : MonoBehaviour
 
         if (hasDemo)
         {
-            experimentConfigManager.StartDemoSequence(d.demoSequences, OnPlaybackComplete);
+            experimentConfigManager.StartDemoSequence(d.demoSequences, d.aidType, OnPlaybackComplete);
         }
         else if (d.experimentConfigs != null && d.experimentConfigs.Length > 0)
         {
-            experimentConfigManager.StartSingleEquip(d.experimentConfigs[0], OnStaticPlaybackComplete);
+            experimentConfigManager.StartSingleEquip(d.experimentConfigs[0], d.aidType, OnStaticPlaybackComplete);
         }
         else
         {

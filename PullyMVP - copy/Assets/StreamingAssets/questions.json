@@ -8,6 +8,7 @@
           "imagePath": "1-1",
           "options": ["75g", "100g", "125g", "150g"],
           "correctAnswer": [1],
+          "aidType": "force",
           "experimentConfigs": [
             {
               "label": "I",
@@ -38,6 +39,7 @@
           "imagePath": "1-2",
           "options": ["Moves up 5cm at 1 m/s", "Moves up 10cm at 2 m/s", "Moves up 20cm at 4 m/s", "Does not move"],
           "correctAnswer": [1],
+          "aidType": "velocity",
           "experimentConfigs": [
             {
               "label": "I",
@@ -61,6 +63,7 @@
           "imagePath": "2-1",
           "options": ["The movable pulley side (3 weights)", "The free end side (2 weights)", "Neither, the system balances", "Both move equally"],
           "correctAnswer": [1],
+          "aidType": "force",
           "experimentConfigs": [
             {
               "label": "I",
@@ -83,6 +86,7 @@
           "imagePath": "2-2",
           "options": ["1", "2", "3", "4"],
           "correctAnswer": [1],
+          "aidType": "force",
           "experimentConfigs": [
             {
               "label": "I",
@@ -101,49 +105,10 @@
             }
           ],
           "demoSequences": [
-  {
-    "label": "A",
-    "useFixedPulley": true,
-    "useMovablePulley": true,
-    "fixedPulleyHangerIndex": 2,
-    "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.05 },
-    "weightAssignments": [
-      { "weightName": "weight_100g_1", "target": "MovablePulley" },
-      { "weightName": "weight_25g_1", "target": "Hook_R" }
-    ],
-    "holdOnly": true,
-    "holdSeconds": 2
-  },
-  {
-    "label": "B",
-    "useFixedPulley": true,
-    "useMovablePulley": true,
-    "fixedPulleyHangerIndex": 2,
-    "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.05 },
-    "weightAssignments": [
-      { "weightName": "weight_100g_1", "target": "MovablePulley" },
-      { "weightName": "weight_25g_1", "target": "Hook_R" },
-      { "weightName": "weight_25g_2", "target": "Hook_R" }
-    ],
-    "holdOnly": true,
-    "holdSeconds": 2
-  },
-  {
-    "label": "C",
-    "useFixedPulley": true,
-    "useMovablePulley": true,
-    "fixedPulleyHangerIndex": 2,
-    "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.05 },
-    "weightAssignments": [
-      { "weightName": "weight_100g_1", "target": "MovablePulley" },
-      { "weightName": "weight_25g_1", "target": "Hook_R" },
-      { "weightName": "weight_25g_2", "target": "Hook_R" },
-      { "weightName": "weight_25g_3", "target": "Hook_R" }
-    ],
-    "holdOnly": true,
-    "holdSeconds": 2
-  }
-]
+            { "label": "A", "useFixedPulley": true, "useMovablePulley": true, "fixedPulleyHangerIndex": 2, "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.05 }, "weightAssignments": [ { "weightName": "weight_100g_1", "target": "MovablePulley" }, { "weightName": "weight_25g_1", "target": "Hook_R" } ], "holdOnly": true, "holdSeconds": 2 },
+            { "label": "B", "useFixedPulley": true, "useMovablePulley": true, "fixedPulleyHangerIndex": 2, "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.05 }, "weightAssignments": [ { "weightName": "weight_100g_1", "target": "MovablePulley" }, { "weightName": "weight_25g_1", "target": "Hook_R" }, { "weightName": "weight_25g_2", "target": "Hook_R" } ], "holdOnly": true, "holdSeconds": 2 },
+            { "label": "C", "useFixedPulley": true, "useMovablePulley": true, "fixedPulleyHangerIndex": 2, "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.05 }, "weightAssignments": [ { "weightName": "weight_100g_1", "target": "MovablePulley" }, { "weightName": "weight_25g_1", "target": "Hook_R" }, { "weightName": "weight_25g_2", "target": "Hook_R" }, { "weightName": "weight_25g_3", "target": "Hook_R" } ], "holdOnly": true, "holdSeconds": 2 }
+          ]
         }
       }
     },
@@ -155,6 +120,7 @@
           "imagePath": "3-1",
           "options": ["5cm", "10cm", "20cm", "40cm"],
           "correctAnswer": [2],
+          "aidType": "distance",
           "experimentConfigs": [
             {
               "label": "II",
@@ -173,6 +139,7 @@
           "imagePath": "3-2",
           "options": ["Speed: 1 m/s, Acceleration: 0.5 m/s²", "Speed: 2 m/s, Acceleration: 1 m/s²", "Speed: 0.5 m/s, Acceleration: 0.25 m/s²", "Speed: 2 m/s, Acceleration: 0.5 m/s²"],
           "correctAnswer": [1],
+          "aidType": "velocity",
           "experimentConfigs": [
             {
               "label": "II",

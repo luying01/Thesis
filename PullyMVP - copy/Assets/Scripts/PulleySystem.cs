@@ -196,4 +196,16 @@ public class PulleySystem : MonoBehaviour
     {
         return mechanicalAdvantage;
     }
+
+    public void ResetToDefaultState()
+    {
+        var lockedField = typeof(PulleySystem).GetField("lockedMovablePulley",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        lockedField?.SetValue(this, null);
+
+        cachedFixedSlot = null;
+        movableIsRight = false;
+        ropeSegments = 1;
+        mechanicalAdvantage = 1f;
+    }
 }

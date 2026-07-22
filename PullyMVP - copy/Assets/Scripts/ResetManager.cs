@@ -74,21 +74,11 @@ public class ResetManager : MonoBehaviour
             }
         }
 
-        // ���� Step 4: Reset PulleySystem internal state ��������������������������������������������
+        // ── Step 4: Reset PulleySystem internal state ──────────────────────────
         PulleySystem pulleySystem = FindObjectOfType<PulleySystem>();
         if (pulleySystem != null)
         {
-            var lockedMovableField = typeof(PulleySystem).GetField("lockedMovablePulley",
-                System.Reflection.BindingFlags.NonPublic |
-                System.Reflection.BindingFlags.Instance);
-            if (lockedMovableField != null)
-                lockedMovableField.SetValue(pulleySystem, null);
-
-            var cachedFixedSlotField = typeof(PulleySystem).GetField("cachedFixedSlot",
-                System.Reflection.BindingFlags.NonPublic |
-                System.Reflection.BindingFlags.Instance);
-            if (cachedFixedSlotField != null)
-                cachedFixedSlotField.SetValue(pulleySystem, null);
+            pulleySystem.ResetToDefaultState();
         }
 
         // ���� Step 5: Reset PulleyPhysics state ����������������������������������������������������������

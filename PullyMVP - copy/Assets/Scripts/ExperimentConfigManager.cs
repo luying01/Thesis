@@ -59,6 +59,7 @@ public class ExperimentConfigManager : MonoBehaviour
     public FidelityManager fidelityManager;
     public ResetManager resetManager;
     public PulleyPhysics pulleyPhysics;
+    public ConceptualAidManager conceptualAidManager;
 
     // Current active config
     private ExperimentConfig currentConfig;
@@ -156,7 +157,7 @@ public class ExperimentConfigManager : MonoBehaviour
 
     // ── Step 2b: Low Fidelity (used both by legacy auto-path and Play button) ──
 
-    private IEnumerator ApplyLowFidelity(ExperimentConfig config)
+    private IEnumerator ApplyLowFidelity(ExperimentConfig config, string aidType)
     {
         SetGrabbable(fixedPulley, false);
         SetGrabbable(movablePulley, false);
@@ -193,6 +194,7 @@ public class ExperimentConfigManager : MonoBehaviour
         }
 
         yield return StartCoroutine(GroupAndDeliverWeights(config));
+        yield return StartCoroutine(MaybePlayForceReveal(aidType));
 
         foreach (WeightAssignment wa in config.weightAssignments)
         {
@@ -401,16 +403,16 @@ public class ExperimentConfigManager : MonoBehaviour
 
     // ── Play Button Entry Points ─────────────────────────────────────────
 
-    public void StartSingleEquip(ExperimentConfig config, System.Action onComplete)
+    public void StartSingleEquip(ExperimentConfig config, string aidType, System.Action onComplete)
     {
         StopCurrentDemo();
-        currentDemoCoroutine = StartCoroutine(RunSingleEquip(config, onComplete));
+        currentDemoCoroutine = StartCoroutine(RunSingleEquip(config, aidType, onComplete));
     }
 
-    public void StartDemoSequence(ExperimentConfig[] steps, System.Action onComplete)
+    public void StartDemoSequence(ExperimentConfig[] steps, string aidType, System.Action onComplete)
     {
         StopCurrentDemo();
-        currentDemoCoroutine = StartCoroutine(RunDemoSequence(steps, onComplete));
+        currentDemoCoroutine = StartCoroutine(RunDemoSequence(steps, aidType, onComplete));
     }
 
     public void StopCurrentDemo()
@@ -422,7 +424,7 @@ public class ExperimentConfigManager : MonoBehaviour
         }
     }
 
-    private IEnumerator RunSingleEquip(ExperimentConfig config, System.Action onComplete)
+    private IEnumerator RunSingleEquip(ExperimentConfig config, string aidType, System.Action onComplete)
     {
         if (resetManager != null)
         {
@@ -430,13 +432,13 @@ public class ExperimentConfigManager : MonoBehaviour
             yield return null;
         }
 
-        yield return StartCoroutine(ApplyLowFidelity(config));
+        yield return StartCoroutine(ApplyLowFidelity(config, aidType));
 
         currentDemoCoroutine = null;
         onComplete?.Invoke();
     }
 
-    private IEnumerator RunDemoSequence(ExperimentConfig[] steps, System.Action onComplete)
+    private IEnumerator RunDemoSequence(ExperimentConfig[] steps, string aidType, System.Action onComplete)
     {
         if (steps == null || steps.Length == 0)
         {
@@ -468,7 +470,7 @@ public class ExperimentConfigManager : MonoBehaviour
 
         foreach (ExperimentConfig step in steps)
         {
-            yield return StartCoroutine(PlayDemoStep(step));
+            yield return StartCoroutine(PlayDemoStep(step, aidType));
 
             // After weights are retracted, snap the rope's Y-position back to
             // neutral (not the pulleys themselves) before the next step delivers.
@@ -511,11 +513,12 @@ public class ExperimentConfigManager : MonoBehaviour
 
     // ── Demo Sequence Playback (per-step) ────────────────────────────────
 
-    private IEnumerator PlayDemoStep(ExperimentConfig step)
+    private IEnumerator PlayDemoStep(ExperimentConfig step, string aidType)
     {
         targetWeightCount.Clear();
 
         yield return StartCoroutine(GroupAndDeliverWeights(step));
+        yield return StartCoroutine(MaybePlayForceReveal(aidType));
 
         if (step.holdOnly)
         {
@@ -528,6 +531,16 @@ public class ExperimentConfigManager : MonoBehaviour
         }
 
         yield return StartCoroutine(RetractDemoWeights(step));
+    }
+
+    private IEnumerator MaybePlayForceReveal(string aidType)
+    {
+        Debug.Log($"[AidDebug] MaybePlayForceReveal called, aidType={aidType}, conceptualAidManager null? {conceptualAidManager == null}");
+        if (conceptualAidManager == null) yield break;
+        if (string.IsNullOrEmpty(aidType) || aidType != "force") yield break;
+        if (!conceptualAidManager.IsAidEnabled()) yield break;
+
+        yield return StartCoroutine(conceptualAidManager.PlayForceReveal(aidType));
     }
 
     private IEnumerator WaitUntilSettled(GameObject referenceWeight)

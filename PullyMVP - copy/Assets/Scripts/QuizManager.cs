@@ -17,6 +17,7 @@ public class DifficultySetting
     public int[] correctAnswer;
     public ExperimentConfig[] experimentConfigs;
     public ExperimentConfig[] demoSequences;
+    public string aidType;
 }
 
 [System.Serializable]
@@ -58,6 +59,7 @@ public class QuizManager : MonoBehaviour
     public ExperimentConfigManager experimentConfigManager;
     public FidelityManager fidelityManager;
     public DemoPlayButtonController demoPlayButtonController;
+    public ConceptualAidManager conceptualAidManager;
 
     [Header("Selection Indicator")]
     public GameObject selectionRing;
@@ -187,6 +189,7 @@ public class QuizManager : MonoBehaviour
         if (demoPlayButtonController != null) demoPlayButtonController.ForceStop();
         if (experimentConfigManager != null) experimentConfigManager.StopCurrentDemo();
         DifficultySetting d = GetCurrentDifficultySetting();
+        if (conceptualAidManager != null) conceptualAidManager.SetCurrentAidType(d.aidType);
 
         questionText.text = d.imagePath + ". " + d.questionText;
 

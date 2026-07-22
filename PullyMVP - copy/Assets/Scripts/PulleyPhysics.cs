@@ -356,6 +356,9 @@ public class PulleyPhysics : MonoBehaviour
     public float GetLoadMass() =>
         weightChainLoad != null ? GetChainMass(weightChainLoad) : 0f;
 
+    public float GetForceMass() =>
+    weightChainForce != null ? GetChainMass(weightChainForce) : 0f;
+
     // ── Public: Reset ─────────────────────────────────────────────
 
     public void ResetTracking()
