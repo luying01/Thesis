@@ -49,6 +49,11 @@ public class QuizManager : MonoBehaviour
     public Button prevButton;
     public Button nextButton;
     public TextMeshProUGUI nextButtonText;
+    [Header("Input")]
+    [Tooltip("Ignore repeat navigation input inside this window, to absorb " +
+         "the double-fire from the UI and ray input paths overlapping.")]
+    public float navInputCooldown = 0.35f;
+    private float _lastNavInputTime = -1f;
     public TextMeshProUGUI feedbackText;
 
     [Header("Config Buttons")]
@@ -240,6 +245,12 @@ public class QuizManager : MonoBehaviour
 
     public void OnConfirmOrNext()
     {
+        // Two input paths reach this button: QuizManager registers
+        // Button.onClick, and QuizRaySelector calls TouchButton.TriggerButton
+        // on the same object. TouchButton's own cooldown does not cover the
+        // UI path, so one trigger press advanced two questions.
+        if (Time.time - _lastNavInputTime < navInputCooldown) return;
+        _lastNavInputTime = Time.time;
         if (quizFinished)
         {
             OnFinish();
@@ -577,6 +588,12 @@ public class QuizManager : MonoBehaviour
 
     public void PrevQuestion()
     {
+        // Two input paths reach this button: QuizManager registers
+        // Button.onClick, and QuizRaySelector calls TouchButton.TriggerButton
+        // on the same object. TouchButton's own cooldown does not cover the
+        // UI path, so one trigger press advanced two questions.
+        if (Time.time - _lastNavInputTime < navInputCooldown) return;
+        _lastNavInputTime = Time.time;
         if (showingThankYou)
         {
             showingThankYou = false;

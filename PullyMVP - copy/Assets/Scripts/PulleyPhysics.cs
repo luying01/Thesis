@@ -151,6 +151,19 @@ public class PulleyPhysics : MonoBehaviour
             leftLength = Mathf.Clamp(leftLength, 0.05f, totalRopeLength - 0.05f);
             rightLength = Mathf.Clamp(rightLength, 0.05f, totalRopeLength - 0.05f);
 
+            // A hook that has reached the end of its travel is physically at
+            // rest. Without this, velocity stays pinned at the clamp value
+            // forever: the positions freeze but the solver keeps reporting
+            // motion, so anything waiting for the system to settle waits
+            // indefinitely. The movable-pulley branch already does this.
+            float minLen = 0.05f;
+            float maxLen = totalRopeLength - 0.05f;
+            if (leftLength <= minLen || leftLength >= maxLen ||
+                rightLength <= minLen || rightLength >= maxLen)
+            {
+                velocity = 0f;
+            }
+
             if (hookLeft != null)
                 hookLeft.position = new Vector3(slotLeft.position.x, slotLeft.position.y - leftLength, slotLeft.position.z);
             if (hookRight != null)
@@ -232,7 +245,16 @@ public class PulleyPhysics : MonoBehaviour
             d2 = Mathf.Max(d2, minD2);
             d1 = (totalRopeLengthMA2 - d2) / 2f;
 
-            if (d2 <= minD2 || d1 <= minD1) velocity = 0f;
+            // Zero the velocity at BOTH ends of the travel, not just the lower
+            // bounds. With one side unloaded the acceleration is constant, so
+            // d1 parks against its upper clamp while velocity keeps integrating
+            // to the ±2 cap: every frame the integration pushes the pulley out
+            // of the limit and the clamp drags it back, which reads as jitter.
+            float maxD1 = (totalRopeLengthMA2 - minD2) / 2f;
+            bool atLimit = d1 <= minD1 + 1e-5f
+                        || d1 >= maxD1 - 1e-5f
+                        || d2 <= minD2 + 1e-5f;
+            if (atLimit) velocity = 0f;
 
             loadY = fixedY - d1;
             forceY = fixedY - d2;

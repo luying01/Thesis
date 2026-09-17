@@ -415,6 +415,8 @@ public class ExperimentConfigManager : MonoBehaviour
         currentDemoCoroutine = StartCoroutine(RunDemoSequence(steps, aidType, onComplete));
     }
 
+    /// <summary>True while a demo or auto-placement animation is running.</summary>
+    public bool IsPlaying { get { return currentDemoCoroutine != null; } }
     public void StopCurrentDemo()
     {
         if (currentDemoCoroutine != null)

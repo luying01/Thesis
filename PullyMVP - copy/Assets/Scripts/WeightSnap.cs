@@ -236,8 +236,9 @@ public class WeightSnap : MonoBehaviour
         Transform bottomPoint = other.transform.Find("weight_AttachPoint_Bottom");
         if (bottomPoint == null) return;
 
-        float parentY = other.transform.eulerAngles.y;
-        Quaternion targetRotation = Quaternion.Euler(0f, parentY + 90f, 0f);
+        // Match the first weight's orientation exactly. The previous +90 offset
+        // rotated every chained weight relative to the one above it.
+        Quaternion targetRotation = other.transform.rotation;
 
         transform.SetParent(bottomPoint);
         transform.rotation = targetRotation;

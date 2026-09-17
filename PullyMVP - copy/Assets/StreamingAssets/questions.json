@@ -6,8 +6,8 @@
         "normal": {
           "questionText": "A fixed pulley holds a weight on the left side. 25 g weights are added one at a time to the right hook until the system balances. What is the weight on the left?",
           "imagePath": "1-1",
-          "options": ["75g", "100g", "125g", "150g"],
-          "correctAnswer": [1],
+          "options": ["25g", "50g", "100g", "125g"],
+          "correctAnswer": [2],
           "aidType": "force",
           "experimentConfigs": [
             {
@@ -59,7 +59,7 @@
       "id": 2,
       "difficulties": {
         "normal": {
-          "questionText": "Each weight shown is 25 g. With no external force applied, what happens in the next second?",
+          "questionText": "Each weight shown is 25 g. With no external force applied, which side moves down in the next second?",
           "imagePath": "2-1",
           "options": ["The movable pulley side (3 weights)", "The free end side (2 weights)", "Neither, the system balances", "Both move equally"],
           "correctAnswer": [1],

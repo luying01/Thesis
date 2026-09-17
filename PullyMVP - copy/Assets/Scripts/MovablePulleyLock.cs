@@ -12,6 +12,10 @@ public class MovablePulleyLock : MonoBehaviour
     [Header("Settings")]
     public float snapRange = 0.3f;
     public float dragRadius = 0.3f;
+    [Tooltip("Off: only a real grab moves the pulley. On: holding the trigger " +
+         "inside the pulley's collider also drags it, which fires by " +
+         "accident while pulling the rope past it.")]
+    public bool allowTriggerDrag = false;
 
     [Header("Read Only")]
     public bool isLocked = false;
@@ -65,6 +69,7 @@ public class MovablePulleyLock : MonoBehaviour
 
     private void OnTriggerStay(Collider other)
     {
+        if (!allowTriggerDrag) return;
         if (!isLocked) return;
         if (isDragging) return;
         if (pulleyPhysics == null) return;

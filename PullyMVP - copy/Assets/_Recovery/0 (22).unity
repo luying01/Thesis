@@ -259,13 +259,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 44801264}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.006743042, y: 0.8338236, z: 0.010187625, w: 0.55189586}
-  m_LocalPosition: {x: -0.68, y: 1.2, z: 0.65}
+  m_LocalRotation: {x: -0.012123369, y: -0.12359226, z: -0.0015100455, w: 0.9922579}
+  m_LocalPosition: {x: 0.07, y: 1.1, z: 0.12}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: -1.4, y: 113, z: 0}
+  m_LocalEulerAnglesHint: {x: -1.4, y: -14.2, z: 0}
 --- !u!4 &90226246 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 9084198550478819899, guid: 59681f59c3b4faf4a9a4f41f517b74bc,
@@ -800,12 +800,6 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
---- !u!4 &343273001 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -5801350701563647440, guid: fc2fb1e4e7ef68d40813010eb1864ae9,
-    type: 3}
-  m_PrefabInstance: {fileID: 2074637014}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &384102686
 GameObject:
   m_ObjectHideFlags: 0
@@ -962,7 +956,7 @@ Transform:
   m_GameObject: {fileID: 410087039}
   serializedVersion: 2
   m_LocalRotation: {x: 0.35475603, y: -0.37053493, z: -0.34099594, w: 0.787765}
-  m_LocalPosition: {x: 0.6576003, y: 2.19, z: -0.45}
+  m_LocalPosition: {x: 0.6576003, y: 3.931846, z: 1.320843}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3658,12 +3652,6 @@ MonoBehaviour:
   pulleySystem: {fileID: 1476886314}
   snappedPulleyObject: {fileID: 0}
   autoSnapPulleyAtStart: {fileID: 1065443833}
---- !u!4 &873414668 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 3635422328081236376, guid: fc2fb1e4e7ef68d40813010eb1864ae9,
-    type: 3}
-  m_PrefabInstance: {fileID: 2074637014}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &895130354
 GameObject:
   m_ObjectHideFlags: 0
@@ -4454,6 +4442,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1033090141}
+  - {fileID: 1138261960}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1002910130
@@ -5775,14 +5764,13 @@ MonoBehaviour:
   prevButton: {fileID: 1961988975}
   nextButton: {fileID: 1717337860}
   nextButtonText: {fileID: 2086730017}
-  navInputCooldown: 0.35
   feedbackText: {fileID: 340381724}
   configButtonPrefab: {fileID: 7451700325067758764, guid: 871b97e9d263b0b4688986f2725d6600,
     type: 3}
   configButtonContainer: {fileID: 1066086855}
   experimentConfigManager: {fileID: 1622549485}
   fidelityManager: {fileID: 1622549484}
-  demoPlayButtonController: {fileID: 1622549487}
+  demoPlayButtonController: {fileID: 0}
   conceptualAidManager: {fileID: 1622549486}
   selectionRing: {fileID: 0}
   upgradeDelaySeconds: 1.2
@@ -5820,12 +5808,12 @@ Transform:
   m_GameObject: {fileID: 1138261959}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.24, y: 1.105, z: 0.481}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 948519188}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 1002910129}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1138261961
 MonoBehaviour:
@@ -6002,7 +5990,7 @@ LineRenderer:
       serializedVersion: 2
       key0: {r: 1, g: 1, b: 1, a: 1}
       key1: {r: 1, g: 1, b: 1, a: 1}
-      key2: {r: 1, g: 1, b: 1, a: 0}
+      key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
       key5: {r: 0, g: 0, b: 0, a: 0}
@@ -6010,7 +5998,7 @@ LineRenderer:
       key7: {r: 0, g: 0, b: 0, a: 0}
       ctime0: 0
       ctime1: 65535
-      ctime2: 65535
+      ctime2: 0
       ctime3: 0
       ctime4: 0
       ctime5: 0
@@ -6025,13 +6013,13 @@ LineRenderer:
       atime6: 0
       atime7: 0
       m_Mode: 0
-      m_ColorSpace: 0
+      m_ColorSpace: -1
       m_NumColorKeys: 2
       m_NumAlphaKeys: 2
     numCornerVertices: 0
     numCapVertices: 0
     alignment: 0
-    textureMode: 1
+    textureMode: 0
     textureScale: {x: 1, y: 1}
     shadowBias: 0.5
     generateLightingData: 0
@@ -6091,9 +6079,9 @@ MonoBehaviour:
   distanceHookL: 0
   distanceHookR: 0
   distanceMovablePulley: 0
-  lineHookL: {fileID: 0}
-  lineHookR: {fileID: 0}
-  lineMovablePulley: {fileID: 0}
+  lineHookL: {fileID: 1836633533}
+  lineHookR: {fileID: 2044653641}
+  lineMovablePulley: {fileID: 977630031}
 --- !u!1 &1175636254
 GameObject:
   m_ObjectHideFlags: 0
@@ -6563,7 +6551,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: -0.351, y: 1.246}
+  m_AnchoredPosition: {x: -0.351, y: 1.227}
   m_SizeDelta: {x: 0.15, y: 0.1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1220712716
@@ -9102,8 +9090,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   config: {fileID: 11400000, guid: d12562b223b4e084ea6b216c6c191a74, type: 2}
-  currentCLScore: 0
-  currentLevel: 0
+  currentCLScore: 94.8
+  currentLevel: 3
   onFidelityLevelChanged:
     m_PersistentCalls:
       m_Calls:
@@ -9131,11 +9119,6 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-  deferWhileGrabbing: 1
-  ropeGrabLeft: {fileID: 1002910130}
-  ropeGrabRight: {fileID: 1138261961}
-  pulleyPhysics: {fileID: 1144867055}
-  pendingLevel: -1
 --- !u!114 &1622549485
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9184,87 +9167,31 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   pulleyPhysics: {fileID: 1144867055}
   fidelityManager: {fileID: 1622549484}
-  experimentConfigManager: {fileID: 1622549485}
-  quizManager: {fileID: 1118426412}
   mainCamera: {fileID: 709318654}
   hookL: {fileID: 1002910129}
   hookR: {fileID: 1138261960}
-  fixedPulley: {fileID: 1379576571}
   movablePulley: {fileID: 2074637015}
-  movableRopeSlotL: {fileID: 873414668}
-  movableRopeSlotR: {fileID: 343273001}
-  renderOnTop: 1
-  towardViewer: {x: -1, y: 0, z: 0}
-  aidForwardOffset: 0.06
-  minWorldY: 0.78
-  arrowPlaneNormal: {x: -1, y: 0, z: 0}
-  restVelocityThreshold: 0.01
-  restHoldTime: 0.5
-  fadeInDuration: 0.3
-  fadeOutDuration: 0.2
-  stage1HoldDuration: 1.2
-  stage2MergeDuration: 0.8
-  demoTerminalHoldTime: 2
-  holdDiagramAfterDemo: 1
-  revealSettleTimeout: 6
-  revealSettleHoldTime: 0.05
-  unitArrowLength: 0.02
-  arrowLineWidth: 0.003
+  fixedPulley: {fileID: 1379576571}
+  arrowSpacing: 0.03
+  arrowWidth: 0.002
   arrowHeadSize: 0.008
-  arrowLabelFontSize: 0.1
-  arrowLabelSideOffset: 0.02
-  tensionSymbol: T
-  weightSymbol: W
-  weightArrowFromChainBottom: 0
-  forceArrowsAxisAligned: 1
-  hookSideOffset: 0.03
-  stackHorizontalOffset: 0.12
-  freeEndHorizontalOffset: 0.1
-  overlapPushStep: 0.06
-  maxOverlapPushes: 2
-  minGroupSeparation: 0.18
-  comfortCeilingY: 1.75
-  playComparisonStage: 1
-  comparisonMoveDuration: 0.9
-  comparisonDelay: 1
-  comparisonSpacing: 0.1
-  comparisonBaselineHeight: 0.35
-  comparisonForwardOffset: 0.08
-  invertComparisonOrder: 0
-  showComparisonBaseline: 1
-  comparisonBaselineColor: {r: 0.8, g: 0.8, b: 0.8, a: 1}
-  comparisonBaselineWidth: 0.0015
-  comparisonBaselineMargin: 0.05
-  showComparisonGrid: 1
-  comparisonGridColor: {r: 0.62, g: 0.62, b: 0.62, a: 1}
-  comparisonGridWidth: 0.0008
-  maxComparisonGridLines: 8
-  leaderLineColor: {r: 0.55, g: 0.55, b: 0.55, a: 1}
-  leaderLineWidth: 0.0012
-  leaderDashLength: 0.008
-  leaderGapLength: 0.006
-  leaderMaxDashes: 40
-  trackSegmentLength: 0.05
-  trackGapRatio: 0.15
-  trackMaxSegments: 12
-  trackLineWidth: 0.004
-  trackStartTickLength: 0.03
-  trackLateralOffset: 0.06
-  trackFadeOutDelay: 0
-  formulaFontSize: 0.2
-  formulaMarkerFontSize: 0.43
-  formulaPanelOffset: {x: -0.22, y: -0.19, z: 0}
-  showFormulaMarkers: 0
-  formulaPanelWidth: 4
-  formulaPanelHeight: 3
-  flipFormulaPanelFacing: 1
-  formulaPanelRotation: {x: 0, y: 45, z: 0}
-  formulaSubscriptFree: _free
-  formulaSubscriptLoad: _load
-  markerTagLoad: '[1]'
-  markerTagFree: '[2]'
-  formulaColor: {r: 1, g: 1, b: 1, a: 1}
-  verboseLogging: 1
+  maxArrowLength: 0.15
+  distanceLineOffset: 0.03
+  rulerTickInterval: 0.05
+  rulerTickLength: 0.02
+  rulerStartTickLength: 0.03
+  rulerTickWidth: 0.001
+  rulerLabelSize: 0.03
+  maxRulerTicks: 20
+  forceScale: 0.005
+  velocityScale: 0.05
+  accelerationScale: 0.03
+  colorDistance: {r: 0, g: 0, b: 1, a: 1}
+  colorForce: {r: 1, g: 0, b: 0, a: 1}
+  colorVelocity: {r: 0, g: 1, b: 0, a: 1}
+  colorAcceleration: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  minValueThreshold: 0.001
+  forceStepDuration: 1
 --- !u!114 &1622549487
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9279,15 +9206,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DemoPlayButtonController
   playButtonRoot: {fileID: 1220712711}
   playButton: {fileID: 541387676}
-  playButtonLabel: {fileID: 1502681647}
-  equipmentLabel: Play
-  aidReplayLabel: Show Forces Again
   fidelityManager: {fileID: 1622549484}
   quizManager: {fileID: 1118426412}
   experimentConfigManager: {fileID: 1622549485}
-  conceptualAidManager: {fileID: 1622549486}
-  demoLevels: 0000000001000000
-  aidReplayLevels: 0000000002000000
+  triggerLevels: 0000000001000000
 --- !u!1001 &1651435603
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -10042,7 +9964,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1857460922}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b3280f9eec5ca5e46b706933ba7f68e7, type: 3}
   m_Name: 
@@ -10453,7 +10375,7 @@ Transform:
   m_GameObject: {fileID: 1960438401}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -1.88, z: -0.655}
+  m_LocalPosition: {x: 0, y: -1.186, z: -0.655}
   m_LocalScale: {x: 0.02, y: 0.02, z: 0.02}
   m_ConstrainProportionsScale: 1
   m_Children: []
@@ -11645,7 +11567,6 @@ MonoBehaviour:
   pulleyPhysics: {fileID: 1144867055}
   snapRange: 0.3
   dragRadius: 0.3
-  allowTriggerDrag: 0
   isLocked: 0
 --- !u!65 &2074637021
 BoxCollider:
@@ -12139,7 +12060,6 @@ SceneRoots:
   - {fileID: 1221844964}
   - {fileID: 384102689}
   - {fileID: 1144867054}
-  - {fileID: 1138261960}
   - {fileID: 1002910129}
   - {fileID: 451270710}
   - {fileID: 541929542}
