@@ -8,6 +8,9 @@ public class MovablePulleyLock : MonoBehaviour
     public PulleySystem pulleySystem;
     public ExperimentConfigManager experimentConfigManager;
     public PulleyPhysics pulleyPhysics;
+    [Tooltip("Tells the student why the experiment reset. Optional.")]
+    public WarningUI warningUI;
+    public ResetManager resetManager;
 
     [Header("Settings")]
     public float snapRange = 0.3f;
@@ -16,6 +19,8 @@ public class MovablePulleyLock : MonoBehaviour
          "inside the pulley's collider also drags it, which fires by " +
          "accident while pulling the rope past it.")]
     public bool allowTriggerDrag = false;
+    [Tooltip("Message shown when the pulley is released off the rope.")]
+    public string offRopeWarning = "The movable pulley must hang on the rope";
 
     [Header("Read Only")]
     public bool isLocked = false;
@@ -23,7 +28,7 @@ public class MovablePulleyLock : MonoBehaviour
     private XRGrabInteractable grabInteractable;
     private bool wasSelected = false;
 
-    private bool isDragging = false;
+    public bool isDragging = false;
     private Transform draggingController = null;
     private Vector3 dragOrigin;
 
@@ -50,21 +55,42 @@ public class MovablePulleyLock : MonoBehaviour
                     AlignToFixedPulley(nearestSlot);
                 else
                 {
-                    Debug.Log("[MovablePulleyLock] Out of snap range, resetting experiment");
-                    if (experimentConfigManager != null)
-                        experimentConfigManager.ResetToCurrentConfig();
+                    Debug.Log("[MovablePulleyLock] Out of snap range");
+                    HandleOutOfRangeRelease();
                 }
             }
             else
             {
-                Debug.Log("[MovablePulleyLock] No fixed slot found, resetting experiment");
-                if (experimentConfigManager != null)
-                    experimentConfigManager.ResetToCurrentConfig();
+                Debug.Log("[MovablePulleyLock] No fixed slot found");
+                HandleOutOfRangeRelease();
             }
         }
         wasSelected = isSelected;
 
         UpdateTriggerDrag();
+    }
+
+    /// <summary>
+    /// Released off the rope: warn, then put everything back to the loose,
+    /// unassembled state the question started in - not to the question's
+    /// configured layout. ResetToCurrentConfig re-applies that layout, which at
+    /// high fidelity is the assembled arrangement the student is supposed to
+    /// build themselves, so it left weights hanging mid-air on a rope that was
+    /// not connected.
+    ///
+    /// Only reachable at high fidelity: at low fidelity the pulley is locked
+    /// automatically and never released by hand.
+    /// </summary>
+    private void HandleOutOfRangeRelease()
+    {
+        if (warningUI != null)
+            warningUI.ShowWarning(offRopeWarning);
+
+        if (pulleySystem != null)
+            pulleySystem.ResetToDefaultState();
+
+        if (resetManager != null)
+            resetManager.ResetAll();
     }
 
     private void OnTriggerStay(Collider other)

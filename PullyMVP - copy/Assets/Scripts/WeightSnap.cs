@@ -236,13 +236,25 @@ public class WeightSnap : MonoBehaviour
         Transform bottomPoint = other.transform.Find("weight_AttachPoint_Bottom");
         if (bottomPoint == null) return;
 
-        // Match the first weight's orientation exactly. The previous +90 offset
-        // rotated every chained weight relative to the one above it.
-        Quaternion targetRotation = other.transform.rotation;
+        // Each weight in a stack sits a quarter turn from the one above it, the
+        // way real slotted masses are laid up.
+        float parentY = other.transform.eulerAngles.y;
+        Quaternion targetRotation = Quaternion.Euler(0f, parentY + 90f, 0f);
+
+        // Position the same way the hook and movable-pulley snaps do: line this
+        // weight's own top attach point up with the target point, with the
+        // offset rotated by the weight's own rotation.
+        //
+        // The old hard-coded drop could not do that. It assumed a fixed vertical
+        // gap regardless of orientation, so once each weight turned 90 degrees
+        // the alignment no longer matched - which is what the small sideways
+        // nudge was there to paper over, and that nudge then accumulated down
+        // the chain because every weight is parented to the one above it.
+        Vector3 targetPosition = GetPositionForTopAlignment(bottomPoint.position, targetRotation);
 
         transform.SetParent(bottomPoint);
         transform.rotation = targetRotation;
-        transform.position = bottomPoint.position + Vector3.down * (0.029f - 0.01f) + Vector3.forward * 0.005f;
+        transform.position = targetPosition;
 
         Rigidbody rb = GetComponent<Rigidbody>();
         if (rb != null) rb.isKinematic = true;

@@ -197,6 +197,20 @@ public class ConceptualAidManager : MonoBehaviour
              "in degrees. Y yaws the panel left/right, X tilts the top toward " +
              "or away from the reader, Z rolls it. Safe to tune during Play.")]
     public Vector3 formulaPanelRotation = Vector3.zero;
+    [Tooltip("Shared look for every panel in the scene. Create one via " +
+             "Assets > Create > PulleyMVP > Panel Style and drag it here.")]
+    public PanelStyle panelStyle;
+    [Tooltip("Layer the quiz ray can hit, so the panel's toggle button works. " +
+             "Must match QuizRaySelector's Quiz UI Layer.")]
+    public int panelUILayer = 0;
+    [Tooltip("What state the formula panel opens in. Collapsed by default: " +
+             "a long formula left permanently on screen was reported as adding " +
+             "cognitive load rather than relieving it.")]
+    public FormulaPanel.PanelState formulaInitialState = FormulaPanel.PanelState.Collapsed;
+    public string formulaLabelCollapsed = "Formula";
+    public string formulaLabelBasic = "More";
+    public string formulaLabelExpanded = "Hide";
+
     [Tooltip("Subscripts used in the ratio. Change to suit the study language.")]
     public string formulaSubscriptFree = "_free";
     public string formulaSubscriptLoad = "_load";
@@ -324,7 +338,9 @@ public class ConceptualAidManager : MonoBehaviour
             formulaMarkerFontSize, formulaColor, markerTagLoad, markerTagFree,
             arrowPlaneNormal, showFormulaMarkers, renderOnTop,
             formulaPanelWidth, formulaPanelHeight,
-            formulaSubscriptLoad, formulaSubscriptFree);
+            formulaSubscriptLoad, formulaSubscriptFree,
+            panelStyle, panelUILayer,
+            formulaLabelCollapsed, formulaLabelBasic, formulaLabelExpanded);
 
         SetAidEnabled(false);
     }
@@ -1532,7 +1548,7 @@ public class ConceptualAidManager : MonoBehaviour
 
         if (!formulaShown || ma2 != formulaShownAsMA2)
         {
-            formulaPanel.Show(ma2);
+            formulaPanel.Show(ma2, formulaInitialState);
             // Movable-pulley velocity questions open with the whole chain
             // visible rather than revealing the acceleration row in a second
             // step - the panel is no longer something the student must unlock.

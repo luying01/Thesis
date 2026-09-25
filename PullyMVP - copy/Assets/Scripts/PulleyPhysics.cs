@@ -21,6 +21,15 @@ public class PulleyPhysics : MonoBehaviour
     public float totalRopeLength = 2f;
     public float totalRopeLengthMA2 = 1.0f;
 
+    [Tooltip("Closest the movable pulley may come to the fixed pulley.")]
+    public float minD1 = 0.01f;
+
+    [Tooltip("Longest rope the student may create by hanging the movable pulley " +
+             "low. The free end's lowest reachable point is roughly the fixed " +
+             "pulley's height minus this, so it also decides whether the free " +
+             "end can run below the table.")]
+    public float maxRopeLengthMA2 = 0.6f;
+
     [Header("Read Only")]
     public float leftLength;
     public float rightLength;
@@ -201,7 +210,7 @@ public class PulleyPhysics : MonoBehaviour
         {
             float d2 = Vector3.Distance(fixedPulleySlotRef.position, freeEndHook.position);
             float d1 = (totalRopeLengthMA2 - d2) / 2f;
-            d1 = Mathf.Max(d1, 0.01f);
+            d1 = Mathf.Max(d1, minD1);
             loadY = fixedY - d1;
             forceY = freeEndHook.position.y;
             velocity = 0f;
@@ -237,24 +246,25 @@ public class PulleyPhysics : MonoBehaviour
 
             float d1 = Mathf.Abs(fixedY - loadY);
             float d2 = totalRopeLengthMA2 - d1 * 2f;
-            float minD1 = 0.01f;
             float minD2 = 0.01f;
+            float maxD1 = (totalRopeLengthMA2 - minD2) / 2f;
 
-            d1 = Mathf.Clamp(d1, minD1, (totalRopeLengthMA2 - minD2) / 2f);
+            // Test the raw value, before clamping, and block only motion that
+            // pushes further into the limit.
+            //
+            // loadY -= velocity, so a NEGATIVE velocity raises the pulley and
+            // shrinks d1. The signs were the wrong way round, which is why the
+            // check never fired and velocity sat pinned at the -2 cap.
+            bool pushingIntoLimit =
+                (d1 <= minD1 && velocity < 0f) ||
+                (d1 >= maxD1 && velocity > 0f);
+
+            d1 = Mathf.Clamp(d1, minD1, maxD1);
             d2 = totalRopeLengthMA2 - d1 * 2f;
             d2 = Mathf.Max(d2, minD2);
             d1 = (totalRopeLengthMA2 - d2) / 2f;
 
-            // Zero the velocity at BOTH ends of the travel, not just the lower
-            // bounds. With one side unloaded the acceleration is constant, so
-            // d1 parks against its upper clamp while velocity keeps integrating
-            // to the ±2 cap: every frame the integration pushes the pulley out
-            // of the limit and the clamp drags it back, which reads as jitter.
-            float maxD1 = (totalRopeLengthMA2 - minD2) / 2f;
-            bool atLimit = d1 <= minD1 + 1e-5f
-                        || d1 >= maxD1 - 1e-5f
-                        || d2 <= minD2 + 1e-5f;
-            if (atLimit) velocity = 0f;
+            if (pushingIntoLimit) velocity = 0f;
 
             loadY = fixedY - d1;
             forceY = fixedY - d2;
@@ -265,13 +275,21 @@ public class PulleyPhysics : MonoBehaviour
             movablePulley.position = new Vector3(
                 movablePulley.position.x, loadY, movablePulley.position.z);
 
-        // Only update Y when not grabbed, allow free 3D movement when grabbed
+        // On release the hook returns to hanging directly under its own rope
+        // slot, and only its height is left to the physics - the same thing the
+        // Atwood branch already does. Keeping the release X/Z here instead left
+        // the hook oscillating wherever the hand happened to let go, so the same
+        // action gave different feedback on a single fixed pulley and on a
+        // movable one, which is noise the study does not want.
         if (freeEndHook != null && !freeEndGrabbed)
-            freeEndHook.position = new Vector3(
-                freeEndHook.position.x,
-                forceY,
-                freeEndHook.position.z);
+        {
+            Transform freeSlot = (freeEndHook == hookLeft) ? slotLeft : slotRight;
+            Vector3 restPosition = freeSlot != null
+                ? new Vector3(freeSlot.position.x, forceY, freeSlot.position.z)
+                : new Vector3(freeEndHook.position.x, forceY, freeEndHook.position.z);
 
+            freeEndHook.position = restPosition;
+        }
         if (trackingMovablePulley && movablePulleyBottom != null)
         {
             distanceMovablePulley = Vector3.Distance(movablePulleyBottom.position, startPositionMovablePulley);
@@ -421,19 +439,55 @@ public class PulleyPhysics : MonoBehaviour
     public void SetFixedPulleyRef(Transform fixedSlot)
     {
         fixedPulleySlotRef = fixedSlot;
-        if (fixedSlot != null && movablePulleyBottom != null && freeEndHook != null)
-        {
-            Transform movablePulley = movablePulleyBottom.parent;
-            float pulleyY = movablePulley != null ? movablePulley.position.y : movablePulleyBottom.position.y;
-            float d1 = Mathf.Abs(fixedSlot.position.y - pulleyY);
-            float d2 = Mathf.Abs(fixedSlot.position.y - freeEndHook.position.y);
-            totalRopeLengthMA2 = d1 * 2f + d2;
-            loadY = pulleyY;
-            forceY = freeEndHook.position.y;
-            velocity = 0f;
-            Debug.Log("Rope length MA2 initialized: " + totalRopeLengthMA2);
-        }
     }
+
+    /// <summary>
+    /// Set the rope length from where the movable pulley has just been hung.
+    /// Placing the pulley is what decides the length: hang it lower and the rope
+    /// in that configuration is longer. The free segment equals one pulley
+    /// segment, so an unloaded system hangs level.
+    /// </summary>
+    public void MeasureRopeLengthMA2(string reason = "unspecified")
+    {
+        if (fixedPulleySlotRef == null || movablePulleyBottom == null || freeEndHook == null)
+            return;
+
+        Transform movablePulley = movablePulleyBottom.parent;
+        float pulleyY = movablePulley != null ? movablePulley.position.y : movablePulleyBottom.position.y;
+
+        float d1 = Mathf.Abs(fixedPulleySlotRef.position.y - pulleyY);
+
+        // Cap the total. As the pulley rises the free segment takes over almost
+        // the whole rope, so an over-long rope lets the free end run below the
+        // table however the pulley itself is placed. The pulley is moved up to
+        // match, or the geometry would no longer agree with the length.
+        float maxD1 = maxRopeLengthMA2 / 3f;
+        if (d1 > maxD1)
+        {
+            d1 = maxD1;
+            pulleyY = fixedPulleySlotRef.position.y - d1;
+            if (movablePulley != null)
+                movablePulley.position = new Vector3(
+                    movablePulley.position.x, pulleyY, movablePulley.position.z);
+        }
+
+        float d2 = d1;
+        totalRopeLengthMA2 = d1 * 2f + d2;
+        loadY = pulleyY;
+        forceY = fixedPulleySlotRef.position.y - d2;
+        velocity = 0f;
+
+        Transform freeSlot = (freeEndHook == hookLeft) ? slotLeft : slotRight;
+        if (freeSlot != null)
+            freeEndHook.position = new Vector3(freeSlot.position.x, forceY, freeSlot.position.z);
+        else
+            freeEndHook.position = new Vector3(
+                freeEndHook.position.x, forceY, freeEndHook.position.z);
+
+        Debug.Log("Rope length MA2 measured (" + reason + "): " + totalRopeLengthMA2
+                  + " | d1=" + d1 + " (max " + maxD1 + ")");
+    }
+
 
     // Resets only the rope's vertical geometry (movable pulley + free end Y
     // position) back to a neutral state — used between demo sequence steps so
@@ -472,6 +526,11 @@ public class PulleyPhysics : MonoBehaviour
         return movablePulleyBottom != null ? movablePulleyBottom.position : Vector3.zero;
     }
 
+    public Transform GetFixedPulleySlotRef() 
+    {
+        return fixedPulleySlotRef; 
+    }
+
     // Called every frame while the player drags the movable pulley with trigger.
     // Mirrors the freeEndGrabbed branch, but drives from the load (movable pulley) side.
     public void DragLoadTo(Vector3 desiredPosition)
@@ -481,7 +540,6 @@ public class PulleyPhysics : MonoBehaviour
         float fixedY = fixedPulleySlotRef.position.y;
 
         float d1 = Mathf.Abs(fixedY - desiredPosition.y);
-        float minD1 = 0.01f;
         float maxD1 = Mathf.Max(minD1, (totalRopeLengthMA2 - 0.01f) / 2f);
         d1 = Mathf.Clamp(d1, minD1, maxD1);
 

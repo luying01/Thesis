@@ -21,6 +21,10 @@ public class PulleySystem : MonoBehaviour
     public PulleySlot cachedFixedSlot = null;
     public bool movableIsRight = false;
 
+    // Records what caused the last recalculation, so the rope-length log can
+    // name its own trigger instead of appearing anonymously in a busy Console.
+    private string lastRecalcReason = "startup";
+
     private void Awake()
     {
         ropeSystem = FindObjectOfType<RopeSystem>();
@@ -35,23 +39,27 @@ public class PulleySystem : MonoBehaviour
 
     public void OnPulleyPlaced(PulleySlot slot)
     {
+        lastRecalcReason = "pulley placed";
         RecalculateSystem();
     }
 
     public void OnPulleyRemoved(PulleySlot slot)
     {
+        lastRecalcReason = "pulley removed";
         cachedFixedSlot = null;
         RecalculateSystem();
     }
 
     public void OnMovablePulleyLocked(Transform pulleyTransform)
     {
+        lastRecalcReason = "movable pulley LOCKED";
         lockedMovablePulley = pulleyTransform;
         RecalculateSystem();
     }
 
     public void OnMovablePulleyUnlocked()
     {
+        lastRecalcReason = "movable pulley UNLOCKED";
         lockedMovablePulley = null;
         cachedFixedSlot = null;
         RecalculateSystem();
@@ -66,7 +74,8 @@ public class PulleySystem : MonoBehaviour
         mechanicalAdvantage = Mathf.Max(1f, movableCount * 2f);
 
         Debug.Log($"Fixed: {fixedCount}, Movable: {movableCount}, " +
-                  $"Segments: {ropeSegments}, MA: {mechanicalAdvantage}");
+                  $"Segments: {ropeSegments}, MA: {mechanicalAdvantage} " +
+                  $"[cause: {lastRecalcReason}]");
 
         cachedFixedSlot = null;
         foreach (var slot in fixedPulleySlots)
@@ -161,6 +170,13 @@ public class PulleySystem : MonoBehaviour
 
         pulleyPhysics?.SetFreeEndHook(ropeEnd);
         pulleyPhysics?.SetFixedPulleyRef(fixedRef);
+
+        // Measure the rope only when the movable pulley is actually hanging on
+        // it. Measured at scene start, or with the pulley parked off to one
+        // side, the figure describes a configuration that does not exist - and
+        // the solver then puts the free end somewhere impossible.
+        if (lockedMovablePulley != null)
+            pulleyPhysics?.MeasureRopeLengthMA2(lastRecalcReason);
     }
 
     private Transform FindChildByName(Transform parent, string partialName)
@@ -199,13 +215,11 @@ public class PulleySystem : MonoBehaviour
 
     public void ResetToDefaultState()
     {
-        var lockedField = typeof(PulleySystem).GetField("lockedMovablePulley",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        lockedField?.SetValue(this, null);
-
+        lockedMovablePulley = null;
         cachedFixedSlot = null;
         movableIsRight = false;
         ropeSegments = 1;
         mechanicalAdvantage = 1f;
+        lastRecalcReason = "reset to default";
     }
 }
