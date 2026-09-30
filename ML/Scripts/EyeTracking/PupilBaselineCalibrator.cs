@@ -8,6 +8,7 @@ public class PupilBaselineCalibrator : MonoBehaviour
 {
     public HTCHeadsetReader reader;
     public EyeBuffer buffer;
+    public ExperimentLogger logger;
     public int seconds = 300;
 
     private float leftSum;
@@ -44,12 +45,14 @@ public class PupilBaselineCalibrator : MonoBehaviour
                 leftSum += reader.LeftPupilDiameter;
                 rightSum += reader.RightPupilDiameter;
                 sampleCount++;
+
+                logger.LogCalibrationSample(
+                    reader.LeftPupilDiameter,
+                    reader.RightPupilDiameter
+                );
+
+
                 Debug.Log("Sample count: " + sampleCount);
-            } else
-            {
-                Debug.Log("Sample failed");
-                Debug.Log(reader.HasValidPupils);
-                Debug.Log(Time.time >= endTime - 20);
             }
 
             yield return null;
@@ -64,8 +67,6 @@ public class PupilBaselineCalibrator : MonoBehaviour
 
         buffer.LeftBaseline = Left_Baseline;
         buffer.RightBaseline = Right_Baseline;
-
-        Debug.Log("Finished calibrating");
 
         Finished = true;
     }

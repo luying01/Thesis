@@ -15,6 +15,7 @@ public class EyeBuffer : MonoBehaviour
     private float[,] buffer;
 
     private int index = 0;
+    private long[] timestamps;
 
     void Awake()
     {
@@ -23,11 +24,13 @@ public class EyeBuffer : MonoBehaviour
                 windowSize,
                 features
             ];
+
+        timestamps = new long[windowSize];
     }
 
 
 
-    public void AddSample()
+    public void AddSample(long timestamp)
     {
         buffer[index, 0] =
             reader.LeftPupilDiameter / LeftBaseline;
@@ -42,54 +45,93 @@ public class EyeBuffer : MonoBehaviour
         buffer[index, 5] = reader.LeftEyeOpenness;
         buffer[index, 6] = reader.RightEyeOpenness;
 
-        // for(int f=0;f<features;f++)
-        // {
-        //     buffer[index,f] =
-        //         sample[f];
-        // }
+        timestamps[index] = timestamp;
 
+        index = (index + 1) % windowSize;
 
-        index++;
+        // index++;
 
-        if(index >= windowSize)
-            index = 0;
+        // if(index >= windowSize)
+        //     index = 0;
     }
 
 
 
-    public bool IsFull() // This may need to be reworked
+    public bool IsFull()
     {
         return index == 0;
     }
 
 
 
-    public float[,] GetWindow()
-    {
+//     public float[,] GetWindow(
+//         out long startTimestamp,
+//         out long endTimestamp
+//     )
+//     {
 
+//         float[,] output =
+//             new float[
+//                 windowSize,
+//                 features
+//             ];
+
+
+//         // reorder circular buffer
+//         for(int i=0;i<windowSize;i++)
+//         {
+//             int source =
+//                 (index+i)
+//                 % windowSize;
+
+
+//             for(int f=0;f<features;f++)
+//             {
+//                 output[i,f] =
+//                     buffer[source,f];
+//             }
+//         }
+
+
+//         return output;
+//     }
+// }
+
+    public EyeWindow GetWindow()
+    {
         float[,] output =
             new float[
                 windowSize,
                 features
             ];
 
+        long startTimestamp = 0;
+        long endTimestamp = 0;
 
-        // reorder circular buffer
-        for(int i=0;i<windowSize;i++)
+        // Reorder circular buffer
+        for (int i = 0; i < windowSize; i++)
         {
             int source =
-                (index+i)
-                % windowSize;
+                (index + i) % windowSize;
 
-
-            for(int f=0;f<features;f++)
+            for (int f = 0; f < features; f++)
             {
-                output[i,f] =
-                    buffer[source,f];
+                output[i, f] =
+                    buffer[source, f];
             }
+
+            if (i == 0)
+                startTimestamp = timestamps[source];
+
+            if (i == windowSize - 1)
+                endTimestamp = timestamps[source];
         }
 
-
-        return output;
+        return new EyeWindow
+        {
+            Data = output,
+            StartTimestamp = startTimestamp,
+            EndTimestamp = endTimestamp
+        };
     }
 }

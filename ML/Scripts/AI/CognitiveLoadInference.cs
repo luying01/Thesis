@@ -20,6 +20,11 @@ public class CognitiveLoadInference : MonoBehaviour
 
     public int smoothingWindow = 10;
 
+    public float logit;
+    public float probability;
+    public float smooth_probability;
+
+
 
     void Start()
     {
@@ -40,7 +45,11 @@ public class CognitiveLoadInference : MonoBehaviour
     }
 
 
-    public float Predict(float[,] window)
+    public void Predict(
+        float[,] window, 
+        out float logit,
+        out float probability,
+        out float smooth_probability)
     {
         // Create CPU tensor with shape [1, 400, 7]
         Tensor<float> input = new Tensor<float>(
@@ -76,19 +85,20 @@ public class CognitiveLoadInference : MonoBehaviour
         Tensor<float> readableOutput =
             output.ReadbackAndClone();
 
-        float logit = readableOutput[0];
+        logit = readableOutput[0];
 
         readableOutput.Dispose();
         input.Dispose();
 
 
         // sigmoid
-        float probability =
+        probability =
             1.0f /
             (1.0f + Mathf.Exp(-logit));
 
+        smooth_probability = SmoothPrediction(probability);
 
-        return SmoothPrediction(probability);
+        return;
     }
 
 
