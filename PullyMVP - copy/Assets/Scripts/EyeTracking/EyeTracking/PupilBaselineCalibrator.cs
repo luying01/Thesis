@@ -38,9 +38,13 @@ public class PupilBaselineCalibrator : MonoBehaviour
 
         float endTime = Time.time + seconds; // number of seconds to relax
 
-        while (Time.time < endTime && !EndCalibrationEarly)
+        while (Time.time < endTime)
         {
-            // reader.CollectEyeData();
+            if (EndCalibrationEarly && endTime > Time.time + 20)
+            {
+                endTime = Time.time + 20;
+            }
+
             if (reader.HasValidPupils && (Time.time >= endTime - 20)) // Only use last 20 seconds to get baseline in similar lighting conditions
             {
                 leftSum += reader.LeftPupilDiameter;
