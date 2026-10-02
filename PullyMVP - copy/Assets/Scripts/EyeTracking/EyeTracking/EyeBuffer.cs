@@ -9,8 +9,8 @@ public class EyeBuffer : MonoBehaviour
     public float LeftBaseline { get; set; }
     public float RightBaseline { get; set; }
 
-    public int windowSize = 400;
-    public int features = 7;
+    public int WindowSize { get; private set; } = 400;
+    public int Features { get; private set;} = 7;
 
     private float[,] buffer;
 
@@ -21,11 +21,11 @@ public class EyeBuffer : MonoBehaviour
     {
         buffer =
             new float[
-                windowSize,
-                features
+                WindowSize,
+                Features
             ];
 
-        timestamps = new long[windowSize];
+        timestamps = new long[WindowSize];
     }
 
 
@@ -47,7 +47,7 @@ public class EyeBuffer : MonoBehaviour
 
         timestamps[index] = timestamp;
 
-        index = (index + 1) % windowSize;
+        index = (index + 1) % WindowSize;
 
         // index++;
 
@@ -101,20 +101,20 @@ public class EyeBuffer : MonoBehaviour
     {
         float[,] output =
             new float[
-                windowSize,
-                features
+                WindowSize,
+                Features
             ];
 
         long startTimestamp = 0;
         long endTimestamp = 0;
 
         // Reorder circular buffer
-        for (int i = 0; i < windowSize; i++)
+        for (int i = 0; i < WindowSize; i++)
         {
             int source =
-                (index + i) % windowSize;
+                (index + i) % WindowSize;
 
-            for (int f = 0; f < features; f++)
+            for (int f = 0; f < Features; f++)
             {
                 output[i, f] =
                     buffer[source, f];
@@ -123,7 +123,7 @@ public class EyeBuffer : MonoBehaviour
             if (i == 0)
                 startTimestamp = timestamps[source];
 
-            if (i == windowSize - 1)
+            if (i == WindowSize - 1)
                 endTimestamp = timestamps[source];
         }
 

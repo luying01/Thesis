@@ -20,7 +20,7 @@ public class HTCHeadsetReader : MonoBehaviour
 
     public bool HasValidPupils { get; private set; }
 
-    public long timestamp;
+    public long Timestamp { get; private set; }
 
     // public float[] CurrentFeatureVector();
 
@@ -108,6 +108,6 @@ public class HTCHeadsetReader : MonoBehaviour
             RightEyeOpenness = rightEye.eyeOpenness;
         }
 
-        timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     }
 }

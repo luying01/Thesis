@@ -15,14 +15,14 @@ public class CognitiveLoadInference : MonoBehaviour
         new Queue<float>();
 
 
-    public int windowSize = 400;
-    public int featureCount = 7;
+    public int WindowSize { get; private set; } = 400;
+    public int FeatureCount { get; private set; } = 7;
 
     public int smoothingWindow = 10;
 
-    public float logit;
-    public float probability;
-    public float smooth_probability;
+    public float Logit { get; private set; }
+    public float Probability { get; private set; }
+    public float Smooth_probability { get; private set; }
 
 
 
@@ -47,21 +47,21 @@ public class CognitiveLoadInference : MonoBehaviour
 
     public void Predict(
         float[,] window, 
-        out float logit,
-        out float probability,
-        out float smooth_probability)
+        out float Logit,
+        out float Probability,
+        out float Smooth_probability)
     {
         // Create CPU tensor with shape [1, 400, 7]
         Tensor<float> input = new Tensor<float>(
-            new TensorShape(1, windowSize, featureCount)
+            new TensorShape(1, WindowSize, FeatureCount)
         );
 
         // Fill tensor
         int index = 0;
 
-        for(int t = 0; t < windowSize; t++)
+        for(int t = 0; t < WindowSize; t++)
         {
-            for(int f = 0; f < featureCount; f++)
+            for(int f = 0; f < FeatureCount; f++)
             {
                 input[index] = window[t,f];
 
@@ -85,18 +85,18 @@ public class CognitiveLoadInference : MonoBehaviour
         Tensor<float> readableOutput =
             output.ReadbackAndClone();
 
-        logit = readableOutput[0];
+        Logit = readableOutput[0];
 
         readableOutput.Dispose();
         input.Dispose();
 
 
         // sigmoid
-        probability =
+        Probability =
             1.0f /
-            (1.0f + Mathf.Exp(-logit));
+            (1.0f + Mathf.Exp(-Logit));
 
-        smooth_probability = SmoothPrediction(probability);
+        Smooth_probability = SmoothPrediction(Probability);
 
         return;
     }

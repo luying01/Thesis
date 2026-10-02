@@ -10,11 +10,15 @@ public class CognitiveLoadController : MonoBehaviour
     public PupilBaselineCalibrator calibrator;
     public HTCHeadsetReader reader;
     public ExperimentLogger logger;
+    public FidelityManager fidelityManager;
     private int currentWindowId = 0;
 
     private float logit;
     private float probability;
     private float smooth_probability;
+    public float Prediction { get; private set; }
+    public bool UseModel = false;
+    public bool BeginMeasuring = false;
 
 
     void Start()
@@ -40,9 +44,9 @@ public class CognitiveLoadController : MonoBehaviour
 
     void Update()
     {
-        if (calibrator.Finished)
+        if (calibrator.Finished && BeginMeasuring)
         {
-            buffer.AddSample(reader.timestamp);
+            buffer.AddSample(reader.Timestamp);
 
             logger.LogMeasurement(
                 reader, 
@@ -51,12 +55,15 @@ public class CognitiveLoadController : MonoBehaviour
 
             if(buffer.IsFull())
             {
-
                 EyeWindow window = buffer.GetWindow();
 
-                // int currentWindowId = windowId++;
-
                 model.Predict(window.Data, out logit, out probability, out smooth_probability);
+
+                Prediction = smooth_probability;
+                if (UseModel && currentWindowId > 5) // ignore the first couple of measurements to get stable predictions before setting the fidelity manager CL score 
+                {
+                    fidelityManager.SetCLScore(Prediction * 100);
+                }
 
                 logger.LogPrediction(
                     currentWindowId,
@@ -69,12 +76,12 @@ public class CognitiveLoadController : MonoBehaviour
 
                 Debug.Log(
                     "Cognitive load probability: "
-                    + model.probability
+                    + probability
                 );
 
                 currentWindowId++;
 
-                Debug.Log("Logging at: " + Application.persistentDataPath);
+                // Debug.Log("Logging at: " + Application.persistentDataPath);
             }
         }   
     }
