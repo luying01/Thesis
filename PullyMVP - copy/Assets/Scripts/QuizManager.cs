@@ -102,6 +102,11 @@ public class QuizManager : MonoBehaviour
 
     private bool showingThankYou = false;
 
+    // Handle for the delayed normal->hard switch, so a Wizard-of-Oz jump can
+    // cancel it. Otherwise a jump made during the 1.2 s delay would be
+    // overridden a moment later by the pending switch.
+    private Coroutine immediateHardCoroutine;
+
     // ©¤©¤ Unity Lifecycle ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
 
     void Start()
@@ -282,10 +287,12 @@ public class QuizManager : MonoBehaviour
             {
                 hardPending[currentIndex] = true;
 
-                // Condition A: first-attempt correct AND CL was Level 3 at the time.
-                bool clWasLevel3 = fidelityManager != null && fidelityManager.GetCurrentLevel() == 3;
+                // Condition A: first-attempt correct AND CL was at the lowest band
+                // (Level 2, the highest fidelity level) at the time.
+                bool clWasLowest = fidelityManager != null
+                    && fidelityManager.GetCurrentLevel() == FidelityManager.MaxLevel;
                 bool firstAttemptCorrect = !normalHadWrongAttempt[currentIndex];
-                triggerImmediateHard = clWasLevel3 && firstAttemptCorrect;
+                triggerImmediateHard = clWasLowest && firstAttemptCorrect;
             }
 
             bool willFinish = false;
@@ -300,7 +307,7 @@ public class QuizManager : MonoBehaviour
                 SetNextMode();
 
             if (triggerImmediateHard)
-                StartCoroutine(DelayedImmediateHardSwitch());
+                immediateHardCoroutine = StartCoroutine(DelayedImmediateHardSwitch());
         }
         else
         {
@@ -411,6 +418,7 @@ public class QuizManager : MonoBehaviour
     private IEnumerator DelayedImmediateHardSwitch()
     {
         yield return new WaitForSeconds(upgradeDelaySeconds);
+        immediateHardCoroutine = null;
         flowPhase = FlowPhase.ImmediateHardInterrupt;
         currentDifficulty = "hard";
         studentAnswers[currentIndex] = new List<int>();
@@ -733,5 +741,87 @@ public class QuizManager : MonoBehaviour
     {
         if (quizData == null) return null;
         return GetCurrentDifficultySetting();
+    }
+
+    // ©¤©¤ Wizard-of-Oz Jump ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+
+    public bool IsLoaded() { return quizData != null && quizData.questions != null; }
+    public int GetQuestionCount() { return IsLoaded() ? quizData.questions.Length : 0; }
+    public int GetCurrentIndex() { return currentIndex; }
+    public bool IsCurrentHard() { return currentDifficulty == "hard"; }
+    public string GetFlowPhaseName() { return showingThankYou ? "ThankYou" : flowPhase.ToString(); }
+
+    /// <summary>Short label for a question version, e.g. "2-1". Falls back to the id.</summary>
+    public string GetQuestionLabel(int index, bool hard)
+    {
+        if (!IsLoaded() || index < 0 || index >= quizData.questions.Length) return "?";
+        Question q = quizData.questions[index];
+        DifficultySetting d = hard ? q.difficulties.hard : q.difficulties.normal;
+        if (d != null && !string.IsNullOrEmpty(d.imagePath)) return d.imagePath;
+        return q.id + (hard ? "H" : "N");
+    }
+
+    /// <summary>
+    /// Jump straight to one question version, for the experimenter.
+    ///
+    /// Keeps the existing answer records and difficulty flow. The only state it
+    /// touches is the one a result file can actually hold: each question stores
+    /// ONE answer slot, recorded as either normal or hard. So:
+    ///   - jumping to hard marks that question's hard version as shown, and it
+    ///     will not be offered again by the immediate switch or the backfill;
+    ///   - jumping to the OTHER difficulty than the slot currently records
+    ///     clears that slot, because the old answer belongs to a different
+    ///     question text.
+    /// </summary>
+    public void JumpTo(int index, bool hard)
+    {
+        if (!IsLoaded()) return;
+        if (index < 0 || index >= quizData.questions.Length) return;
+        if (hard && quizData.questions[index].difficulties.hard == null) return;
+
+        if (immediateHardCoroutine != null)
+        {
+            StopCoroutine(immediateHardCoroutine);
+            immediateHardCoroutine = null;
+        }
+
+        if (showingThankYou)
+        {
+            showingThankYou = false;
+            RestoreQuestionUI();
+        }
+        quizFinished = false;
+
+        SaveResults();
+        ResetManager rm = FindFirstObjectByType<ResetManager>();
+        if (rm != null) rm.ResetAll();
+
+        bool slotWasHard = hardShown[index];
+        if (slotWasHard != hard)
+            studentAnswers[index] = new List<int>();
+
+        if (hard)
+        {
+            hardPending[index] = true;
+            hardShown[index] = true;
+            // Same phase the automatic switch uses: Next goes on to the
+            // following normal question, or to the backfill after the last one.
+            flowPhase = FlowPhase.ImmediateHardInterrupt;
+        }
+        else
+        {
+            hardShown[index] = false;
+            flowPhase = FlowPhase.NormalRound;
+        }
+
+        backfillQueue.Clear();
+        backfillPointer = -1;
+
+        currentIndex = index;
+        currentDifficulty = hard ? "hard" : "normal";
+        DisplayQuestion(currentIndex);
+
+        Debug.Log("[QuizManager] Wizard jump to " + GetQuestionLabel(index, hard) +
+                  " (" + currentDifficulty + ")");
     }
 }

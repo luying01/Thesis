@@ -3597,7 +3597,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 953251610}
+  m_Material: {fileID: 930503426}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
@@ -4580,42 +4580,7 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7fc4482dfe616a346aff153e50571f54, type: 3}
---- !u!1 &948519187
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 948519188}
-  m_Layer: 0
-  m_Name: HookShape (1)
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &948519188
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 948519187}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.5, y: 1.5, z: 1.5}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 312353384}
-  - {fileID: 158827137}
-  - {fileID: 1175636255}
-  - {fileID: 2115671276}
-  m_Father: {fileID: 1138261960}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!21 &953251610
+--- !u!21 &930503426
 Material:
   serializedVersion: 8
   m_ObjectHideFlags: 0
@@ -4660,6 +4625,41 @@ Material:
     - _FillColor: {r: 0.941, g: 0.89, b: 0.776, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
+--- !u!1 &948519187
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 948519188}
+  m_Layer: 0
+  m_Name: HookShape (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &948519188
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 948519187}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1.5, y: 1.5, z: 1.5}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 312353384}
+  - {fileID: 158827137}
+  - {fileID: 1175636255}
+  - {fileID: 2115671276}
+  m_Father: {fileID: 1138261960}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &977630029
 GameObject:
   m_ObjectHideFlags: 0
@@ -7454,7 +7454,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7bee8a344a968f8459f3861d22fb1b0c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExperimentLogger
-  participantId: 1
+  participantId: 2
 --- !u!1001 &1368382618
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8291,7 +8291,7 @@ MonoBehaviour:
   reader: {fileID: 998437179}
   logger: {fileID: 1367819943}
   fidelityManager: {fileID: 1622549484}
-  UseModel: 0
+  UseModel: 1
   BeginMeasuring: 1
 --- !u!1 &1432652051
 GameObject:
@@ -9769,6 +9769,7 @@ GameObject:
   - component: {fileID: 1622549486}
   - component: {fileID: 1622549487}
   - component: {fileID: 1622549488}
+  - component: {fileID: 1622549489}
   m_Layer: 0
   m_Name: AdaptiveSystem
   m_TagString: Untagged
@@ -9805,6 +9806,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   config: {fileID: 11400000, guid: d12562b223b4e084ea6b216c6c191a74, type: 2}
   currentCLScore: 0
+  startLevel: 0
+  manualMode: 0
   currentLevel: 0
   onFidelityLevelChanged:
     m_PersistentCalls:
@@ -9994,8 +9997,6 @@ MonoBehaviour:
   quizManager: {fileID: 1118426412}
   experimentConfigManager: {fileID: 1622549485}
   conceptualAidManager: {fileID: 1622549486}
-  demoLevels: 0000000001000000
-  aidReplayLevels: 0000000002000000
 --- !u!114 &1622549488
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10015,6 +10016,20 @@ MonoBehaviour:
   activeLevels: 0200000003000000
   returnDuration: 0.3
   warningMessage: The movable pulley must hang on the rope
+--- !u!114 &1622549489
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1622549482}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69d4ee41b7b8da544aec4321a0e5ab4b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WizardControlPanel
+  quizManager: {fileID: 1118426412}
+  fidelityManager: {fileID: 1622549484}
 --- !u!1001 &1651435603
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -10335,7 +10350,7 @@ MonoBehaviour:
   reader: {fileID: 998437179}
   buffer: {fileID: 1881915330}
   logger: {fileID: 1367819943}
-  seconds: 300
+  seconds: 30
   EndCalibrationEarly: 0
 --- !u!1 &1671032960 stripped
 GameObject:

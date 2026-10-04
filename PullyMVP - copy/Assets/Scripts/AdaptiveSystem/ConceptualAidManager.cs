@@ -10,7 +10,8 @@ using System.Collections.Generic;
 ///   "distance" -> segmented displacement tracks
 ///   "velocity" -> segmented displacement tracks + symbolic formula panel
 ///
-/// The fidelity level only switches the aid on and off (on at level 0 and 2).
+/// The fidelity level only switches the aid on and off (on at level 0 and 1).
+/// Level 2 = high fidelity, no aid; 1 = high fidelity + aid; 0 = low fidelity + aid.
 /// It never decides what the aid contains - that comes from aidType.
 ///
 /// All visuals are generated procedurally, so nothing has to be dragged into
@@ -370,7 +371,8 @@ public class ConceptualAidManager : MonoBehaviour
     /// <summary>Hooked to FidelityManager.onFidelityLevelChanged in the Inspector.</summary>
     public void OnFidelityLevelChanged(int newLevel)
     {
-        SetAidEnabled(newLevel == 0 || newLevel == 2);
+        // Three-level ladder: aid is on at Level 1 and Level 0, off at Level 2.
+        SetAidEnabled(newLevel == 0 || newLevel == 1);
     }
 
     public void SetAidEnabled(bool enabled)
