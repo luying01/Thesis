@@ -27,7 +27,7 @@ public class ExperimentConfig
     public string label;                        // "A", "B", "C"
     public bool useFixedPulley;
     public bool useMovablePulley;
-    public int fixedPulleyHangerIndex;          // 0-4, used in low fidelity
+    public int fixedPulleyHangerIndex;          // 0-4, used in low fidelity (Level 0)
     public Vector3Data movablePulleyOffset;     // Offset from fixed pulley
     public WeightAssignment[] weightAssignments;
     public bool holdOnly;
@@ -93,8 +93,10 @@ public class ExperimentConfigManager : MonoBehaviour
 
         ApplyVisibility(config);
 
-        int level = fidelityManager != null ? fidelityManager.GetCurrentLevel() : 3;
-        bool isHighFidelity = (level == 2 || level == 3);
+        // Three-level ladder: Level 2 and 1 are high interaction fidelity,
+        // Level 0 is low fidelity (system places the equipment).
+        int level = fidelityManager != null ? fidelityManager.GetCurrentLevel() : FidelityManager.MaxLevel;
+        bool isHighFidelity = (level == 1 || level == 2);
 
         if (isHighFidelity)
         {

@@ -2,24 +2,33 @@ using UnityEngine;
 using UnityEngine.Events;
 
 /// <summary>
-/// Maps a cognitive-load score onto a fidelity level (0-3) with hysteresis.
+/// Maps a cognitive-load score onto a fidelity level (0-2) with a buffer.
 ///
-/// Two behaviours were added on top of the original version:
+///   Level 2 = high interaction fidelity, conceptual aid OFF   (low CL)
+///   Level 1 = high interaction fidelity, conceptual aid ON
+///   Level 0 = low interaction fidelity, conceptual aid ON     (high CL)
 ///
-/// 1. Multi-step evaluation. CalculateLevel only moves one step at a time, and
-///    Update only re-evaluates when the CL score changes. A single large jump
-///    (e.g. 0 -> 95, then held constant) therefore used to stop one step in
-///    and never arrive. EvaluateLevel now iterates until the level is stable.
-///    This matters most for the Wizard-of-Oz setup, where the score is set in
-///    one move rather than drifting continuously.
+/// Each step changes exactly one dimension: 2->1 adds the aid, 1->0 lowers
+/// interaction fidelity while the aid stays on.
 ///
-/// 2. Deferred switching while grabbing. A fidelity change in the middle of a
-///    manipulation is both more noticeable and more disruptive, so a change
-///    requested while the participant is holding something is queued and
-///    applied on release.
+/// Behaviours kept from the previous version:
+///
+/// 1. Multi-step evaluation. CalculateLevel only moves one step at a time, so
+///    EvaluateLevel iterates until the level is stable. A single large jump
+///    (e.g. 0 -> 95, as in the Wizard-of-Oz setup) lands on the right level.
+///
+/// 2. Deferred switching while grabbing. A change requested while the
+///    participant is holding something is queued and applied on release.
+///
+/// 3. Manual mode (Wizard-of-Oz). ForceLevel sets the level directly and
+///    switches the CL input off, so a CL value left in the slider cannot pull
+///    the level back. ReturnToCLControl hands control back to the CL score.
 /// </summary>
 public class FidelityManager : MonoBehaviour
 {
+    public const int MaxLevel = 2;
+    public const int MinLevel = 0;
+
     [Header("Configuration")]
     public FidelityConfig config;
 
@@ -27,8 +36,19 @@ public class FidelityManager : MonoBehaviour
     [Range(0f, 100f)]
     public float currentCLScore = 0f;
 
+    [Header("Start Level")]
+    [Tooltip("Level the session starts at. Forced into 0-2 on Awake, so an old " +
+             "scene value from the four-level version (3) cannot survive.")]
+    [Range(0, 2)]
+    public int startLevel = MaxLevel;
+
+    [Header("Manual Mode (Wizard-of-Oz)")]
+    [Tooltip("On: the level is set directly by ForceLevel and the CL score is " +
+             "ignored. Turned on automatically by the Wizard panel buttons.")]
+    public bool manualMode = false;
+
     [Header("Current Level (Read Only)")]
-    [SerializeField] private int currentLevel = 3;
+    [SerializeField] private int currentLevel = MaxLevel;
 
     [Header("Events")]
     public UnityEvent<int> onFidelityLevelChanged;
@@ -46,9 +66,17 @@ public class FidelityManager : MonoBehaviour
 
     private float _lastCLScore = -1f;
 
+    private void Awake()
+    {
+        // The scene still stores currentLevel = 3 from the four-level version.
+        // Override it here so every other script sees a valid level from frame 1.
+        currentLevel = Mathf.Clamp(startLevel, MinLevel, MaxLevel);
+        pendingLevel = -1;
+    }
+
     private void Update()
     {
-        if (!Mathf.Approximately(_lastCLScore, currentCLScore))
+        if (!manualMode && !Mathf.Approximately(_lastCLScore, currentCLScore))
         {
             _lastCLScore = currentCLScore;
             EvaluateLevel();
@@ -70,7 +98,7 @@ public class FidelityManager : MonoBehaviour
         // Iterate until stable so a large CL jump lands on the correct level
         // instead of stopping after a single step.
         int target = currentLevel;
-        for (int guard = 0; guard < 8; guard++)
+        for (int guard = 0; guard < 4; guard++)
         {
             int next = CalculateLevel(currentCLScore, target);
             if (next == target) break;
@@ -80,7 +108,7 @@ public class FidelityManager : MonoBehaviour
         if (target == currentLevel)
         {
             // A queued change that is no longer needed should be dropped.
-            if (pendingLevel == currentLevel) pendingLevel = -1;
+            pendingLevel = -1;
             return;
         }
 
@@ -97,6 +125,7 @@ public class FidelityManager : MonoBehaviour
 
     private void ApplyLevel(int newLevel)
     {
+        newLevel = Mathf.Clamp(newLevel, MinLevel, MaxLevel);
         if (newLevel == currentLevel) return;
         currentLevel = newLevel;
         onFidelityLevelChanged.Invoke(currentLevel);
@@ -114,19 +143,50 @@ public class FidelityManager : MonoBehaviour
 
     private int CalculateLevel(float cl, int current)
     {
-        float h = config.hysteresis;
+        float b = config.buffer;
 
         // CL rising: switch to lower fidelity
-        if (current == 3 && cl >= config.toLevel2) return 2;
-        if (current == 2 && cl >= config.toLevel1) return 1;
-        if (current == 1 && cl >= config.toLevel0) return 0;
+        if (current == 2 && cl >= config.boundary2to1 + b) return 1;
+        if (current == 1 && cl >= config.boundary1to0 + b) return 0;
 
         // CL falling: switch to higher fidelity
-        if (current == 0 && cl < config.toLevel0 - h) return 1;
-        if (current == 1 && cl < config.toLevel1 - h) return 2;
-        if (current == 2 && cl < config.toLevel2 - h) return 3;
+        if (current == 0 && cl < config.boundary1to0 - b) return 1;
+        if (current == 1 && cl < config.boundary2to1 - b) return 2;
 
         return current;
+    }
+
+    /// <summary>
+    /// Wizard-of-Oz: set the level directly, ignoring the CL score from now on.
+    /// Still deferred while the participant is holding something.
+    /// </summary>
+    public void ForceLevel(int level)
+    {
+        manualMode = true;
+        level = Mathf.Clamp(level, MinLevel, MaxLevel);
+
+        if (level == currentLevel)
+        {
+            pendingLevel = -1;
+            return;
+        }
+
+        if (deferWhileGrabbing && AnyGrabActive())
+        {
+            pendingLevel = level;
+            Debug.Log("[FidelityManager] Manual level " + level +
+                      " deferred (participant is holding something)");
+            return;
+        }
+
+        ApplyLevel(level);
+    }
+
+    /// <summary>Leave manual mode; the CL score drives the level again.</summary>
+    public void ReturnToCLControl()
+    {
+        manualMode = false;
+        _lastCLScore = -1f; // force a re-evaluation on the next frame
     }
 
     // Teammate calls this to set CL score from their module

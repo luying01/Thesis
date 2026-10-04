@@ -4,19 +4,14 @@ using TMPro;
 /// <summary>
 /// Drives the Play button.
 ///
-/// The button now serves two purposes, split by fidelity level:
+/// The button serves two purposes, split by fidelity level (three-level ladder):
 ///
-///   demoLevels      (0, 1)  -> play the equipment demo / auto-placement
-///   aidReplayLevels (0, 2)  -> replay the conceptual aid
+///   Level 2  high fidelity, no aid    -> button hidden
+///   Level 1  high fidelity + aid      -> replay the conceptual aid only
+///   Level 0  low fidelity + aid       -> play the equipment demo / placement,
+///                                        then replay the conceptual aid
 ///
-/// The original version only appeared at levels 0 and 1, while the conceptual
-/// aid is on at levels 0 and 2. Level 2 - high fidelity with the aid on, one of
-/// the key cells of the 2x2 design - therefore had no way to see the merge
-/// animation a second time. It also hid itself permanently once a static
-/// placement had played, which affected every question that has no
-/// demoSequences (1-2, 2-1, 3-1, 3-2).
-///
-/// At level 2 the button never moves equipment: object placement is the
+/// At Level 1 the button never moves equipment: object placement is the
 /// student's own at high fidelity.
 /// </summary>
 public class DemoPlayButtonController : MonoBehaviour
@@ -39,11 +34,11 @@ public class DemoPlayButtonController : MonoBehaviour
     public ExperimentConfigManager experimentConfigManager;
     public ConceptualAidManager conceptualAidManager;
 
-    [Header("Settings")]
-    [Tooltip("Levels where pressing Play may move equipment (low fidelity).")]
-    public int[] demoLevels = new int[] { 0, 1 };
-    [Tooltip("Levels where pressing Play may replay the conceptual aid.")]
-    public int[] aidReplayLevels = new int[] { 0, 2 };
+    // Fixed in code, not in the Inspector: the scene still stores the arrays
+    // from the four-level version ({0,1} and {0,2}), and a serialized value
+    // would silently override any new default written here.
+    private static readonly int[] demoLevels = new int[] { 0 };
+    private static readonly int[] aidReplayLevels = new int[] { 0, 1 };
 
     private bool isPlaying = false;
     private bool hasPlayedStaticEquip = false;
@@ -157,7 +152,7 @@ public class DemoPlayButtonController : MonoBehaviour
             : null;
         if (d == null) return;
 
-        int level = fidelityManager != null ? fidelityManager.GetCurrentLevel() : 3;
+        int level = fidelityManager != null ? fidelityManager.GetCurrentLevel() : FidelityManager.MaxLevel;
 
         // Equipment first: at low fidelity the demo ends with the system at
         // rest, which is exactly what lets the force aid trigger itself.
