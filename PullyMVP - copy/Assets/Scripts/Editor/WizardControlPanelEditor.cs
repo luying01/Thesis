@@ -37,6 +37,29 @@ public class WizardControlPanelEditor : Editor
         EditorGUILayout.HelpBox(panel.DescribeQuestion() + "\n" + panel.DescribeLevel(),
                                 MessageType.None);
 
+        // ©¤©¤ Baseline calibration music ©¤©¤
+        EditorGUILayout.Space(4);
+        EditorGUILayout.LabelField("Baseline Calibration", EditorStyles.boldLabel);
+
+        if (panel.sfxManager == null)
+        {
+            EditorGUILayout.HelpBox("SFXManager not found on this GameObject.", MessageType.Warning);
+        }
+        else
+        {
+            bool playing = panel.IsBaselineMusicPlaying();
+            EditorGUILayout.BeginHorizontal();
+            Color old = GUI.backgroundColor;
+            if (playing) GUI.backgroundColor = ActiveColor;
+            if (GUILayout.Button(playing ? "Music playing" : "Start baseline music",
+                                 GUILayout.Height(24)))
+                panel.StartBaselineMusic();
+            GUI.backgroundColor = old;
+            if (GUILayout.Button("Stop (fade out)", GUILayout.Height(24)))
+                panel.StopBaselineMusic();
+            EditorGUILayout.EndHorizontal();
+        }
+
         // ©¤©¤ Questions ©¤©¤
         EditorGUILayout.Space(4);
         EditorGUILayout.LabelField("Jump to Question", EditorStyles.boldLabel);

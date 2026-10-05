@@ -82,26 +82,51 @@ public class QuizRaySelector : MonoBehaviour
     }
 
     /// <summary>
-    /// Track which button the ray is on and tell it, if it wants to know
-    /// (only buttons with PlayButtonRayTarget react; answer buttons are unchanged).
+    /// Track which button the ray is on and give hover feedback:
+    /// the button scales up and a hover sound plays once on entry.
+    /// Buttons with PlayButtonRayTarget use that script (tint + scale);
+    /// every other TouchButton gets a RayHoverEffect (scale only), added on
+    /// first hover. Disabled UI Buttons (e.g. Prev on question 1) get no feedback.
     /// </summary>
     private void SetHovered(TouchButton button)
     {
+        if (button != null && !IsInteractable(button)) button = null;
         if (button == currentHovered) return;
 
         if (currentHovered != null)
-        {
-            PlayButtonRayTarget oldTarget = currentHovered.GetComponent<PlayButtonRayTarget>();
-            if (oldTarget != null) oldTarget.SetHovered(false);
-        }
+            ApplyHover(currentHovered, false);
 
         currentHovered = button;
 
         if (currentHovered != null)
         {
-            PlayButtonRayTarget newTarget = currentHovered.GetComponent<PlayButtonRayTarget>();
-            if (newTarget != null) newTarget.SetHovered(true);
+            ApplyHover(currentHovered, true);
+            if (SFXManager.Instance != null) SFXManager.Instance.PlayHover();
         }
+    }
+
+    private static void ApplyHover(TouchButton button, bool hovered)
+    {
+        PlayButtonRayTarget playTarget = button.GetComponent<PlayButtonRayTarget>();
+        if (playTarget != null)
+        {
+            playTarget.SetHovered(hovered);
+            return;
+        }
+
+        RayHoverEffect effect = button.GetComponent<RayHoverEffect>();
+        if (effect == null)
+        {
+            if (!hovered) return;
+            effect = button.gameObject.AddComponent<RayHoverEffect>();
+        }
+        effect.SetHovered(hovered);
+    }
+
+    private static bool IsInteractable(TouchButton button)
+    {
+        UnityEngine.UI.Button uiButton = button.GetComponent<UnityEngine.UI.Button>();
+        return uiButton == null || uiButton.IsInteractable();
     }
 
     void OnDisable()

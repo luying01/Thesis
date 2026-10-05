@@ -13,13 +13,44 @@ public class WizardControlPanel : MonoBehaviour
     [Header("References")]
     public QuizManager quizManager;
     public FidelityManager fidelityManager;
+    public SFXManager sfxManager;
 
     private void Reset()
     {
         // Auto-fill references when the component is first added.
         if (quizManager == null) quizManager = FindFirstObjectByType<QuizManager>();
         if (fidelityManager == null) fidelityManager = GetComponent<FidelityManager>();
+        if (sfxManager == null) sfxManager = GetComponent<SFXManager>();
     }
+
+    private void Awake()
+    {
+        // Existing scenes already have this component, so Reset() will not run
+        // again. Fill the new reference here instead.
+        if (sfxManager == null) sfxManager = GetComponent<SFXManager>();
+    }
+
+    // ── Baseline calibration music ────────────────────────────────────────
+
+    public void StartBaselineMusic()
+    {
+        if (!Application.isPlaying || sfxManager == null) return;
+        sfxManager.StartBaselineMusic();
+    }
+
+    public void StopBaselineMusic()
+    {
+        if (!Application.isPlaying || sfxManager == null) return;
+        sfxManager.StopBaselineMusic();
+    }
+
+    public bool IsBaselineMusicPlaying()
+    {
+        return sfxManager != null && sfxManager.IsMusicPlaying;
+    }
+
+    [ContextMenu("Start baseline music")] private void MenuMusicStart() { StartBaselineMusic(); }
+    [ContextMenu("Stop baseline music (fade out)")] private void MenuMusicStop() { StopBaselineMusic(); }
 
     // ── Question navigation ───────────────────────────────────────────────
 

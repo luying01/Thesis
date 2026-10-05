@@ -6,7 +6,7 @@ using TMPro;
 using System.IO;
 using System.Linq;
 
-// ©¤©¤ Data Classes ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+// -- Data Classes ----------------------------------------
 
 [System.Serializable]
 public class DifficultySetting
@@ -72,7 +72,7 @@ public class QuizManager : MonoBehaviour
     [Header("Difficulty Upgrade Timing")]
     public float upgradeDelaySeconds = 1.2f;
 
-    // ©¤©¤ Internal State ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // -- Internal State ----------------------------------------
 
     private QuestionList quizData;
     private int currentIndex = 0;
@@ -89,7 +89,7 @@ public class QuizManager : MonoBehaviour
     // first attempt, not just eventually.
     private bool[] normalHadWrongAttempt;
 
-    // ©¤©¤ Difficulty Flow State ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // -- Difficulty Flow State ----------------------------------------
     private enum FlowPhase { NormalRound, ImmediateHardInterrupt, HardBackfill }
     private FlowPhase flowPhase = FlowPhase.NormalRound;
 
@@ -107,7 +107,7 @@ public class QuizManager : MonoBehaviour
     // overridden a moment later by the pending switch.
     private Coroutine immediateHardCoroutine;
 
-    // ©¤©¤ Unity Lifecycle ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // -- Unity Lifecycle ----------------------------------------
 
     void Start()
     {
@@ -123,7 +123,7 @@ public class QuizManager : MonoBehaviour
         StartCoroutine(LoadQuestionsCoroutine());
     }
 
-    // ©¤©¤ Load ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // -- Load ----------------------------------------
 
     IEnumerator LoadQuestionsCoroutine()
     {
@@ -184,7 +184,7 @@ public class QuizManager : MonoBehaviour
         }
     }
 
-    // ©¤©¤ Helpers ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // -- Helpers ----------------------------------------
 
     private DifficultySetting GetCurrentDifficultySetting()
     {
@@ -192,7 +192,7 @@ public class QuizManager : MonoBehaviour
         return currentDifficulty == "hard" ? q.difficulties.hard : q.difficulties.normal;
     }
 
-    // ©¤©¤ Display ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // -- Display ----------------------------------------
 
     void DisplayQuestion(int index)
     {
@@ -246,7 +246,7 @@ public class QuizManager : MonoBehaviour
         ClearFeedback();
     }
 
-    // ©¤©¤ Confirm / Next / Finish ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // -- Confirm / Next / Finish ----------------------------------------
 
     public void OnConfirmOrNext()
     {
@@ -300,6 +300,7 @@ public class QuizManager : MonoBehaviour
                 willFinish = ComputeIsLastRemainingAfterThisHard();
 
             ShowFeedback("CORRECT", Color.green);
+            if (SFXManager.Instance != null) SFXManager.Instance.PlayCorrect();
 
             if (willFinish)
                 EnterFinishedState();
@@ -315,6 +316,7 @@ public class QuizManager : MonoBehaviour
                 normalHadWrongAttempt[currentIndex] = true;
 
             ShowFeedback("WRONG", Color.red);
+            if (SFXManager.Instance != null) SFXManager.Instance.PlayWrong();
             selectedAnswers.Clear();
             studentAnswers[currentIndex] = new List<int>();
             UpdateSelectionDisplay();
@@ -350,7 +352,7 @@ public class QuizManager : MonoBehaviour
         Debug.Log("[QuizManager] Quiz finished - all questions completed.");
     }
 
-    // ©¤©¤ Thank You Screen ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // -- Thank You Screen ----------------------------------------
 
     private void ShowThankYouScreen()
     {
@@ -388,7 +390,7 @@ public class QuizManager : MonoBehaviour
         nextButton.gameObject.SetActive(true);
     }
 
-    // ©¤©¤ Feedback Stamp ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // -- Feedback Stamp ----------------------------------------
 
     private void ShowFeedback(string message, Color color)
     {
@@ -413,7 +415,7 @@ public class QuizManager : MonoBehaviour
         feedbackText.text = "";
     }
 
-    // ©¤©¤ Difficulty Flow ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // -- Difficulty Flow ----------------------------------------
 
     private IEnumerator DelayedImmediateHardSwitch()
     {
@@ -504,7 +506,7 @@ public class QuizManager : MonoBehaviour
         DisplayQuestion(currentIndex);
     }
 
-    // ©¤©¤ Config Buttons ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // -- Config Buttons ----------------------------------------
 
     void SpawnConfigButtons(ExperimentConfig[] configs)
     {
@@ -557,7 +559,7 @@ public class QuizManager : MonoBehaviour
         Debug.Log($"[QuizManager] Config selected: {currentExperimentConfigs[configIndex].label}");
     }
 
-    // ©¤©¤ Answer Selection ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // -- Answer Selection ----------------------------------------
 
     public void SelectAnswer(int answerIndex)
     {
@@ -592,7 +594,7 @@ public class QuizManager : MonoBehaviour
         }
     }
 
-    // ©¤©¤ Navigation ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // -- Navigation ----------------------------------------
 
     public void PrevQuestion()
     {
@@ -676,7 +678,7 @@ public class QuizManager : MonoBehaviour
         }
     }
 
-    // ©¤©¤ Helpers ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // -- Helpers ----------------------------------------
 
     IEnumerator LoadImage(string imagePath)
     {
@@ -743,7 +745,7 @@ public class QuizManager : MonoBehaviour
         return GetCurrentDifficultySetting();
     }
 
-    // ©¤©¤ Wizard-of-Oz Jump ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+    // -- Wizard-of-Oz Jump ----------------------------------------
 
     public bool IsLoaded() { return quizData != null && quizData.questions != null; }
     public int GetQuestionCount() { return IsLoaded() ? quizData.questions.Length : 0; }

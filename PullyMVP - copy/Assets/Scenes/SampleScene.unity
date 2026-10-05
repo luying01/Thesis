@@ -2347,51 +2347,6 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
---- !u!21 &608805187
-Material:
-  serializedVersion: 8
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: RoundedPanel (instance)
-  m_Shader: {fileID: 4800000, guid: ff7bb2996a0296e45a342e211da6ec19, type: 3}
-  m_Parent: {fileID: 0}
-  m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
-  m_InvalidKeywords: []
-  m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
-  m_LockedProperties: 
-  m_SavedProperties:
-    serializedVersion: 3
-    m_TexEnvs:
-    - _MainTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    m_Ints: []
-    m_Floats:
-    - _Alpha: 1
-    - _Aspect: 3.5704312
-    - _BorderWidth: 0.05
-    - _ColorMask: 15
-    - _Radius: 0.35
-    - _Stencil: 0
-    - _StencilComp: 8
-    - _StencilOp: 0
-    - _StencilReadMask: 255
-    - _StencilWriteMask: 255
-    - _ZTest: 4
-    m_Colors:
-    - _BorderColor: {r: 0.863, g: 0.78, b: 0.604, a: 1}
-    - _FillColor: {r: 0.941, g: 0.89, b: 0.776, a: 1}
-  m_BuildTextureStacks: []
-  m_AllowLocking: 1
 --- !u!1 &613520722
 GameObject:
   m_ObjectHideFlags: 0
@@ -3661,7 +3616,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 608805187}
+  m_Material: {fileID: 1306385943}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
@@ -7382,6 +7337,51 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1298058750}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!21 &1306385943
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: RoundedPanel (instance)
+  m_Shader: {fileID: 4800000, guid: ff7bb2996a0296e45a342e211da6ec19, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _Alpha: 1
+    - _Aspect: 3.5704312
+    - _BorderWidth: 0.05
+    - _ColorMask: 15
+    - _Radius: 0.35
+    - _Stencil: 0
+    - _StencilComp: 8
+    - _StencilOp: 0
+    - _StencilReadMask: 255
+    - _StencilWriteMask: 255
+    - _ZTest: 4
+    m_Colors:
+    - _BorderColor: {r: 0.863, g: 0.78, b: 0.604, a: 1}
+    - _FillColor: {r: 0.941, g: 0.89, b: 0.776, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!1 &1356540545
 GameObject:
   m_ObjectHideFlags: 0
@@ -9789,6 +9789,7 @@ GameObject:
   - component: {fileID: 1622549487}
   - component: {fileID: 1622549488}
   - component: {fileID: 1622549489}
+  - component: {fileID: 1622549490}
   m_Layer: 0
   m_Name: AdaptiveSystem
   m_TagString: Untagged
@@ -10010,7 +10011,7 @@ MonoBehaviour:
   markerTagLoad: '[1]'
   markerTagFree: '[2]'
   formulaColor: {r: 1, g: 1, b: 1, a: 1}
-  verboseLogging: 1
+  verboseLogging: 0
   logGateState: 0
 --- !u!114 &1622549487
 MonoBehaviour:
@@ -10066,6 +10067,30 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WizardControlPanel
   quizManager: {fileID: 1118426412}
   fidelityManager: {fileID: 1622549484}
+  sfxManager: {fileID: 0}
+--- !u!114 &1622549490
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1622549482}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6652879cb9fc95f4ba78d6ecf98d97c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SFXManager
+  hoverClip: {fileID: 8300000, guid: 32bf301dbead8b64ab128177798ea326, type: 3}
+  confirmClip: {fileID: 8300000, guid: f0b8f1aef0ec51a4cb8a20265d02549b, type: 3}
+  correctClip: {fileID: 8300000, guid: fa1764c20f24c1f4fbb55bb85b605c3c, type: 3}
+  wrongClip: {fileID: 8300000, guid: 20e813aa3398679449916f744a2f80b2, type: 3}
+  baselineMusicClip: {fileID: 0}
+  musicVolume: 0.3
+  musicFadeSeconds: 2
+  hoverVolume: 0.3
+  confirmVolume: 0.6
+  feedbackVolume: 0.2
+  hoverMinInterval: 0.08
 --- !u!1001 &1651435603
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -26,7 +26,7 @@ public class TouchButton : MonoBehaviour
     }
 
     // Whenever this button becomes active again (e.g. the panel is re-shown
-    // after being hidden while playing), clear any leftover cooldown lock ¡ª
+    // after being hidden while playing), clear any leftover cooldown lock -
     // a cooldown coroutine gets silently killed if the GameObject was
     // deactivated mid-wait, which would otherwise leave isOnCooldown stuck true.
     void OnEnable()
@@ -40,6 +40,13 @@ public class TouchButton : MonoBehaviour
         if (isOnCooldown) return;
         Debug.Log("Button triggered: " + gameObject.name);
         StartCoroutine(StartCooldown());
+
+        // Click sound. SFXManager skips it if this same click also produced
+        // a correct/wrong sound (e.g. the Confirm button), so they never overlap.
+        UnityEngine.UI.Button uiButton = GetComponent<UnityEngine.UI.Button>();
+        bool interactable = uiButton == null || uiButton.IsInteractable();
+        if (interactable && SFXManager.Instance != null) SFXManager.Instance.RequestConfirm();
+
         onTouched.Invoke();
     }
 
