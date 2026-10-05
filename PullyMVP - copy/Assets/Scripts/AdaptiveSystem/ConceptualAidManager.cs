@@ -181,16 +181,25 @@ public class ConceptualAidManager : MonoBehaviour
     // ── Inspector: formula panel ──────────────────────────────────────────
 
     [Header("Formula Panel")]
-    public float formulaFontSize = 2f;
+    [Tooltip("Font size of the formulas. The panel sizes itself to fit.")]
+    public float formulaFontSize = 0.2f;
+    [Tooltip("Legend and explanation text, as a fraction of the formula font size.")]
+    [Range(0.4f, 1f)] public float formulaExplanationFontScale = 0.75f;
+    [Tooltip("Toggle button text, as a fraction of the formula font size.")]
+    [Range(0.4f, 1.5f)] public float formulaButtonFontScale = 0.9f;
+    [Tooltip("Font size of the optional [1]/[2] markers.")]
     public float formulaMarkerFontSize = 1.5f;
+    [Tooltip("Corner radius of the formula panel and its button, in metres. " +
+             "Fixed physical size, so it no longer grows with the panel.")]
+    public float formulaCornerRadiusMeters = 0.012f;
+    [Tooltip("Position of the toggle button's top-left corner relative to the pulley.")]
     public Vector3 formulaPanelOffset = new Vector3(0.22f, 0.10f, 0f);
+    [Tooltip("On: the formula body opens ABOVE the button, so the button keeps " +
+             "its height and the panel never sinks below the table. " +
+             "Off: the body opens below the button.")]
+    public bool formulaOpensUpward = true;
     [Tooltip("Small [1] / [2] tags next to each tracked object. Off by default.")]
     public bool showFormulaMarkers = false;
-    [Tooltip("World-space size of the panel's text rect, in metres. Must be " +
-             "big enough for five lines at the chosen font size, or the text " +
-             "is wrapped and clipped away.")]
-    public float formulaPanelWidth = 4f;
-    public float formulaPanelHeight = 3f;
     [Tooltip("Flip the panel 180 degrees if you are reading it from behind. " +
              "The panel faces along towardViewer; this inverts that.")]
     public bool flipFormulaPanelFacing = false;
@@ -198,29 +207,33 @@ public class ConceptualAidManager : MonoBehaviour
              "in degrees. Y yaws the panel left/right, X tilts the top toward " +
              "or away from the reader, Z rolls it. Safe to tune during Play.")]
     public Vector3 formulaPanelRotation = Vector3.zero;
-    [Tooltip("Shared look for every panel in the scene. Create one via " +
-             "Assets > Create > PulleyMVP > Panel Style and drag it here.")]
+    [Tooltip("Shared look for every panel in the scene. The formula panel takes " +
+             "its colours and padding from here, but uses its own corner radius " +
+             "and no border.")]
     public PanelStyle panelStyle;
-    [Tooltip("Layer the quiz ray can hit, so the panel's toggle button works. " +
+    [Tooltip("Layer NAME the quiz ray can hit, so the toggle button works. " +
              "Must match QuizRaySelector's Quiz UI Layer.")]
-    public int panelUILayer = 0;
+    public string formulaUILayerName = "QuizUI";
     [Tooltip("What state the formula panel opens in. Collapsed by default: " +
              "a long formula left permanently on screen was reported as adding " +
              "cognitive load rather than relieving it.")]
     public FormulaPanel.PanelState formulaInitialState = FormulaPanel.PanelState.Collapsed;
-    public string formulaLabelCollapsed = "Formula";
-    public string formulaLabelBasic = "More";
-    public string formulaLabelExpanded = "Hide";
+    [Tooltip("Render queue of the formula panel. Below 3000 = drawn before the " +
+             "quiz paper (UGUI canvas), so the quiz paper covers the panel. " +
+             "Set before entering Play.")]
+    public int formulaRenderQueue = 2900;
+    [Tooltip("All wording on the formula panel: button labels, legend, explanations.")]
+    public FormulaPanelTexts formulaTexts = new FormulaPanelTexts();
 
-    [Tooltip("Subscripts used in the ratio. Change to suit the study language.")]
-    public string formulaSubscriptFree = "_free";
-    public string formulaSubscriptLoad = "_load";
     public string markerTagLoad = "[1]";
     public string markerTagFree = "[2]";
     public Color formulaColor = Color.white;
 
     [Header("Debug")]
     public bool verboseLogging = false;
+    [Tooltip("Print the once-per-second 'BLOCKED' gate report. Very noisy; " +
+             "only needed when the force aid refuses to appear.")]
+    public bool logGateState = false;
 
     // ── Internal state ────────────────────────────────────────────────────
 
@@ -335,13 +348,12 @@ public class ConceptualAidManager : MonoBehaviour
             trackLineWidth, trackSegmentLength, trackGapRatio, trackMaxSegments,
             trackStartTickLength, arrowPlaneNormal, renderOnTop);
 
-        formulaPanel = new FormulaPanel(aidRoot, "FormulaPanel", formulaFontSize,
+        formulaPanel = new FormulaPanel(aidRoot, "FormulaPanel",
+            formulaFontSize, formulaExplanationFontScale, formulaButtonFontScale,
             formulaMarkerFontSize, formulaColor, markerTagLoad, markerTagFree,
             arrowPlaneNormal, showFormulaMarkers, renderOnTop,
-            formulaPanelWidth, formulaPanelHeight,
-            formulaSubscriptLoad, formulaSubscriptFree,
-            panelStyle, panelUILayer,
-            formulaLabelCollapsed, formulaLabelBasic, formulaLabelExpanded);
+            panelStyle, formulaUILayerName, formulaCornerRadiusMeters,
+            formulaTexts, formulaRenderQueue);
 
         SetAidEnabled(false);
     }
@@ -642,7 +654,7 @@ public class ConceptualAidManager : MonoBehaviour
     /// </summary>
     private void LogGateState()
     {
-        if (!verboseLogging) return;
+        if (!verboseLogging || !logGateState) return;
         if (Time.time < nextGateLogTime) return;
         nextGateLogTime = Time.time + 1f;
 
@@ -1550,16 +1562,15 @@ public class ConceptualAidManager : MonoBehaviour
 
         if (!formulaShown || ma2 != formulaShownAsMA2)
         {
+            // Both velocity questions (1-2 and 3-2) open in formulaInitialState
+            // (Collapsed by default) and are stepped through by the student:
+            // Show formula -> More -> Hide.
             formulaPanel.Show(ma2, formulaInitialState);
-            // Movable-pulley velocity questions open with the whole chain
-            // visible rather than revealing the acceleration row in a second
-            // step - the panel is no longer something the student must unlock.
-            if (ma2) formulaPanel.ExpandAcceleration();
             formulaPanel.SetAlpha(1f);
             formulaShown = true;
             formulaShownAsMA2 = ma2;
             if (verboseLogging)
-                Debug.Log("[ConceptualAid] Formula panel shown, expandable=" + ma2);
+                Debug.Log("[ConceptualAid] Formula panel shown, movablePulley=" + ma2);
         }
 
         Transform anchor = fixedPulley != null ? fixedPulley : movablePulley;
@@ -1576,8 +1587,9 @@ public class ConceptualAidManager : MonoBehaviour
             ? Vector3.back : towardViewer.normalized;
         if (flipFormulaPanelFacing) faceDir = -faceDir;
 
-        formulaPanel.SetFontSize(formulaFontSize, formulaMarkerFontSize,
-            formulaPanelWidth, formulaPanelHeight);
+        formulaPanel.SetSizes(formulaFontSize, formulaExplanationFontScale,
+            formulaButtonFontScale, formulaMarkerFontSize, formulaCornerRadiusMeters);
+        formulaPanel.SetOpensUpward(formulaOpensUpward);
 
         Vector3 panelPos = anchor.position
             + side * formulaPanelOffset.x

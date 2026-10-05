@@ -232,6 +232,17 @@ public class ExperimentConfigManager : MonoBehaviour
             if (headObj == null) continue;
             WeightSnap headSnap = headObj.GetComponent<WeightSnap>();
 
+            // Build the stack as if the head were already in its final pose.
+            // The head ends upright (identity) on the hook / movable pulley, and
+            // every member is parented under it, so the head's turn from its
+            // current rotation to identity is passed down the whole stack. If
+            // the members were aligned to the head's CURRENT rotation (e.g. after
+            // a previous run left it tilted), that turn tipped every member on
+            // its side - the "Show Forces Again" bug. Aligning against identity
+            // makes the result independent of where the weights were before.
+            Quaternion headStartRotation = headObj.transform.rotation;
+            headObj.transform.rotation = Quaternion.identity;
+
             WeightSnap previous = headSnap;
             for (int i = 1; i < members.Count; i++)
             {
@@ -244,8 +255,12 @@ public class ExperimentConfigManager : MonoBehaviour
                 previous = memberSnap;
             }
 
+            // Put the head back where it was visually (the stack turns with it
+            // as one rigid piece), then let it turn upright during the move.
+            headObj.transform.rotation = headStartRotation;
+
             Vector3 targetPos = GetWeightTargetPosition(target);
-            moves.Add(StartCoroutine(AnimateToPosition(headObj, targetPos)));
+            moves.Add(StartCoroutine(AnimateToPose(headObj, targetPos, Quaternion.identity)));
 
             if (headSnap != null)
                 headsToRegister.Add((target, headSnap));
@@ -276,6 +291,28 @@ public class ExperimentConfigManager : MonoBehaviour
         }
 
         obj.transform.position = target;
+    }
+
+    /// <summary>Move and turn an object to a target pose over animationDuration.</summary>
+    private IEnumerator AnimateToPose(GameObject obj, Vector3 targetPos, Quaternion targetRot)
+    {
+        SetKinematic(obj, true);
+
+        Vector3 startPos = obj.transform.position;
+        Quaternion startRot = obj.transform.rotation;
+        float elapsed = 0f;
+
+        while (elapsed < animationDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / animationDuration);
+            obj.transform.position = Vector3.Lerp(startPos, targetPos, t);
+            obj.transform.rotation = Quaternion.Slerp(startRot, targetRot, t);
+            yield return null;
+        }
+
+        obj.transform.position = targetPos;
+        obj.transform.rotation = targetRot;
     }
 
     // ── Position Helpers ──────────────────────────────────────────────────

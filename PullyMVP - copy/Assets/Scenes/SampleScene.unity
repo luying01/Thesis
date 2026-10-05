@@ -2009,6 +2009,7 @@ GameObject:
   - component: {fileID: 541387674}
   - component: {fileID: 541387673}
   - component: {fileID: 541387676}
+  - component: {fileID: 541387677}
   m_Layer: 3
   m_Name: Button
   m_TagString: Untagged
@@ -2134,6 +2135,24 @@ MonoBehaviour:
   onTouched:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &541387677
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 541387671}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce84ed75d6e202248a326b8ffe4137d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayButtonRayTarget
+  hitPadding: 0.2
+  cooldownTime: 0.3
+  targetImage: {fileID: 0}
+  hoverColor: {r: 1, g: 0.92, b: 0.62, a: 1}
+  hoverScale: 1.08
+  fadeTime: 0.08
 --- !u!1 &541929540
 GameObject:
   m_ObjectHideFlags: 0
@@ -2328,6 +2347,51 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+--- !u!21 &608805187
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: RoundedPanel (instance)
+  m_Shader: {fileID: 4800000, guid: ff7bb2996a0296e45a342e211da6ec19, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _Alpha: 1
+    - _Aspect: 3.5704312
+    - _BorderWidth: 0.05
+    - _ColorMask: 15
+    - _Radius: 0.35
+    - _Stencil: 0
+    - _StencilComp: 8
+    - _StencilOp: 0
+    - _StencilReadMask: 255
+    - _StencilWriteMask: 255
+    - _ZTest: 4
+    m_Colors:
+    - _BorderColor: {r: 0.863, g: 0.78, b: 0.604, a: 1}
+    - _FillColor: {r: 0.941, g: 0.89, b: 0.776, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!1 &613520722
 GameObject:
   m_ObjectHideFlags: 0
@@ -3597,7 +3661,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 930503426}
+  m_Material: {fileID: 608805187}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
@@ -4580,51 +4644,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7fc4482dfe616a346aff153e50571f54, type: 3}
---- !u!21 &930503426
-Material:
-  serializedVersion: 8
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: RoundedPanel (instance)
-  m_Shader: {fileID: 4800000, guid: ff7bb2996a0296e45a342e211da6ec19, type: 3}
-  m_Parent: {fileID: 0}
-  m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
-  m_InvalidKeywords: []
-  m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
-  m_LockedProperties: 
-  m_SavedProperties:
-    serializedVersion: 3
-    m_TexEnvs:
-    - _MainTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    m_Ints: []
-    m_Floats:
-    - _Alpha: 1
-    - _Aspect: 3.5704312
-    - _BorderWidth: 0.05
-    - _ColorMask: 15
-    - _Radius: 0.35
-    - _Stencil: 0
-    - _StencilComp: 8
-    - _StencilOp: 0
-    - _StencilReadMask: 255
-    - _StencilWriteMask: 255
-    - _ZTest: 4
-    m_Colors:
-    - _BorderColor: {r: 0.863, g: 0.78, b: 0.604, a: 1}
-    - _FillColor: {r: 0.941, g: 0.89, b: 0.776, a: 1}
-  m_BuildTextureStacks: []
-  m_AllowLocking: 1
 --- !u!1 &948519187
 GameObject:
   m_ObjectHideFlags: 0
@@ -6257,14 +6276,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1118426407}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.029839125, y: 0.9621973, z: -0.24374387, w: 0.11779224}
-  m_LocalPosition: {x: -0.805, y: 0.914, z: 0.216}
+  m_LocalRotation: {x: 0.06355592, y: 0.9363502, z: -0.23719385, w: 0.25089434}
+  m_LocalPosition: {x: -0.52, y: 0.914, z: 0.216}
   m_LocalScale: {x: 0.21, y: 0.297, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 313770771}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 28.43, y: 166.041, z: 0}
+  m_LocalEulerAnglesHint: {x: 28.43, y: 150, z: 0}
 --- !u!114 &1118426412
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7083,17 +7102,17 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1220712711}
-  m_LocalRotation: {x: -0, y: 0.9174897, z: -0, w: 0.39775944}
+  m_LocalRotation: {x: 0, y: 0.81915206, z: 0, w: 0.57357645}
   m_LocalPosition: {x: 0, y: 0, z: 0.322}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 541387672}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 133.124, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 110, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: -0.451, y: 1.246}
+  m_AnchoredPosition: {x: -0.4, y: 1.246}
   m_SizeDelta: {x: 0.15, y: 0.1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1220712716
@@ -8291,8 +8310,8 @@ MonoBehaviour:
   reader: {fileID: 998437179}
   logger: {fileID: 1367819943}
   fidelityManager: {fileID: 1622549484}
-  UseModel: 1
-  BeginMeasuring: 1
+  UseModel: 0
+  BeginMeasuring: 0
 --- !u!1 &1432652051
 GameObject:
   m_ObjectHideFlags: 0
@@ -9957,25 +9976,42 @@ MonoBehaviour:
   trackLateralOffset: 0.06
   trackFadeOutDelay: 0
   formulaFontSize: 0.2
+  formulaExplanationFontScale: 0.75
+  formulaButtonFontScale: 0.9
   formulaMarkerFontSize: 0.43
-  formulaPanelOffset: {x: -0.22, y: -0.19, z: 0}
+  formulaCornerRadiusMeters: 0.012
+  formulaPanelOffset: {x: -0.22, y: -0.3, z: 0}
+  formulaOpensUpward: 1
   showFormulaMarkers: 0
-  formulaPanelWidth: 4
-  formulaPanelHeight: 3
   flipFormulaPanelFacing: 1
-  formulaPanelRotation: {x: 0, y: 45, z: 0}
+  formulaPanelRotation: {x: 0, y: 60, z: 0}
   panelStyle: {fileID: 11400000, guid: 0f12084597da6b9468077287921416aa, type: 2}
-  panelUILayer: 0
+  formulaUILayerName: QuizUI
   formulaInitialState: 0
-  formulaLabelCollapsed: Formula
-  formulaLabelBasic: More
-  formulaLabelExpanded: Hide
-  formulaSubscriptFree: _free
-  formulaSubscriptLoad: _load
+  formulaRenderQueue: 2900
+  formulaTexts:
+    buttonShow: Show formula
+    buttonMore: More
+    buttonHide: Hide
+    subscriptFree: free
+    subscriptLoad: load
+    legendV: v = velocity
+    legendA: a = acceleration
+    legendDs: "\u0394s = change in position"
+    legendDv: "\u0394v = change in velocity"
+    legendDt: "\u0394t = change in time"
+    explainK: k = a constant
+    explainFree: x{free} = value at the free end of the rope
+    explainLoad: x{load} = value at the load
+    relationFixed: The change in position and the velocity of the free end are always
+      k times those of the load.
+    relationMovable: The change in position, the velocity and the acceleration of
+      the free end are always k times those of the load.
   markerTagLoad: '[1]'
   markerTagFree: '[2]'
   formulaColor: {r: 1, g: 1, b: 1, a: 1}
   verboseLogging: 1
+  logGateState: 0
 --- !u!114 &1622549487
 MonoBehaviour:
   m_ObjectHideFlags: 0
