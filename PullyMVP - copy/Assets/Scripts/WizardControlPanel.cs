@@ -1,12 +1,19 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 /// <summary>
-/// Wizard-of-Oz control panel. Lives on AdaptiveSystem and is operated from
-/// the Inspector during Play mode, the same way the CL slider on
-/// FidelityManager is. Nothing is drawn in the Game view or the headset.
+/// Experimenter control panel. Lives on AdaptiveSystem and is operated from
+/// the Inspector during Play mode. Nothing is drawn in the Game view or the
+/// headset.
 ///
-/// The buttons themselves are drawn by Editor/WizardControlPanelEditor.cs.
-/// Every action is also available from the component's ⋮ menu as a fallback.
+/// What the support controls do depends on FidelityManager.group:
+///   A  no controls; fixed at Level 2
+///   B  Aid ON/OFF and Auto setup ON/OFF, pressed when the participant asks
+///      out loud (logged as LearnerRequest); L2/L1/L0 as shortcuts
+///   C  L2/L1/L0 override if the classifier fails (logged as WizardOverride),
+///      plus Return to CL control
+///
+/// The buttons are drawn by Editor/WizardControlPanelEditor.cs.
+/// Every action is also available from the component's menu as a fallback.
 /// </summary>
 public class WizardControlPanel : MonoBehaviour
 {
@@ -25,23 +32,23 @@ public class WizardControlPanel : MonoBehaviour
 
     private void Awake()
     {
-        // Existing scenes already have this component, so Reset() will not run
-        // again. Fill the new reference here instead.
         if (sfxManager == null) sfxManager = GetComponent<SFXManager>();
     }
 
-    // ── Baseline calibration music ────────────────────────────────────────
+    // -- Baseline calibration music --------------------------------------------
 
     public void StartBaselineMusic()
     {
         if (!Application.isPlaying || sfxManager == null) return;
         sfxManager.StartBaselineMusic();
+        SessionLogger.Log("BaselineMusicStart", "Wizard", "");
     }
 
     public void StopBaselineMusic()
     {
         if (!Application.isPlaying || sfxManager == null) return;
         sfxManager.StopBaselineMusic();
+        SessionLogger.Log("BaselineMusicStop", "Wizard", "");
     }
 
     public bool IsBaselineMusicPlaying()
@@ -52,7 +59,7 @@ public class WizardControlPanel : MonoBehaviour
     [ContextMenu("Start baseline music")] private void MenuMusicStart() { StartBaselineMusic(); }
     [ContextMenu("Stop baseline music (fade out)")] private void MenuMusicStop() { StopBaselineMusic(); }
 
-    // ── Question navigation ───────────────────────────────────────────────
+    // -- Question navigation -----------------------------------------------------
 
     public void JumpTo(int questionIndex, bool hard)
     {
@@ -72,27 +79,47 @@ public class WizardControlPanel : MonoBehaviour
         quizManager.PrevQuestion();
     }
 
-    // ── Fidelity level ────────────────────────────────────────────────────
+    // -- Support controls ----------------------------------------------------------
 
+    /// <summary>Group B: learner request shortcut. Group C: manual override.</summary>
     public void SetLevel(int level)
     {
         if (!Application.isPlaying || fidelityManager == null) return;
         fidelityManager.ForceLevel(level);
     }
 
+    /// <summary>Group B only.</summary>
+    public void SetAid(bool on)
+    {
+        if (!Application.isPlaying || fidelityManager == null) return;
+        fidelityManager.SetAid(on);
+    }
+
+    /// <summary>Group B only.</summary>
+    public void SetAutoSetup(bool on)
+    {
+        if (!Application.isPlaying || fidelityManager == null) return;
+        fidelityManager.SetAutoSetup(on);
+    }
+
+    /// <summary>Group C only.</summary>
     public void ReturnToCLControl()
     {
         if (!Application.isPlaying || fidelityManager == null) return;
         fidelityManager.ReturnToCLControl();
     }
 
-    [ContextMenu("Level 2 (high fidelity, no aid)")] private void MenuLevel2() { SetLevel(2); }
-    [ContextMenu("Level 1 (high fidelity + aid)")] private void MenuLevel1() { SetLevel(1); }
-    [ContextMenu("Level 0 (low fidelity + aid)")] private void MenuLevel0() { SetLevel(0); }
+    [ContextMenu("Level 2 (manual setup, no aid)")] private void MenuLevel2() { SetLevel(2); }
+    [ContextMenu("Level 1 (manual setup + aid)")] private void MenuLevel1() { SetLevel(1); }
+    [ContextMenu("Level 0 (auto setup + aid)")] private void MenuLevel0() { SetLevel(0); }
+    [ContextMenu("B: Aid ON")] private void MenuAidOn() { SetAid(true); }
+    [ContextMenu("B: Aid OFF")] private void MenuAidOff() { SetAid(false); }
+    [ContextMenu("B: Auto setup ON")] private void MenuAutoOn() { SetAutoSetup(true); }
+    [ContextMenu("B: Auto setup OFF")] private void MenuAutoOff() { SetAutoSetup(false); }
     [ContextMenu("Next question")] private void MenuNext() { Next(); }
     [ContextMenu("Previous question")] private void MenuPrev() { Prev(); }
 
-    // ── Status (read by the Inspector) ────────────────────────────────────
+    // -- Status (read by the Inspector) ---------------------------------------------
 
     public string DescribeQuestion()
     {
@@ -104,18 +131,31 @@ public class WizardControlPanel : MonoBehaviour
                ")   flow: " + quizManager.GetFlowPhaseName();
     }
 
+    public static string DescribeCode(int code)
+    {
+        switch (code)
+        {
+            case 2: return "L2  manual setup, no aid";
+            case 1: return "L1  manual setup + aid";
+            case 0: return "L0  auto setup + aid";
+            case FidelityManager.AutoNoAidCode: return "auto setup, no aid";
+            default: return "?";
+        }
+    }
+
     public string DescribeLevel()
     {
         if (fidelityManager == null) return "FidelityManager not assigned";
-        int level = fidelityManager.GetCurrentLevel();
-        string name = level == 2 ? "high fidelity, no aid"
-                    : level == 1 ? "high fidelity + aid"
-                    : "low fidelity + aid";
-        string s = "Level " + level + "  (" + name + ")   " +
-                   (fidelityManager.manualMode
-                       ? "MANUAL"
-                       : "CL = " + fidelityManager.currentCLScore.ToString("F0"));
-        if (fidelityManager.HasPendingLevelChange())
+        FidelityManager fm = fidelityManager;
+
+        string s = "Group " + fm.GetGroupLabel() + "\n" +
+                   "Scene:  " + DescribeCode(fm.GetCurrentLevel()) +
+                   (fm.manualMode ? "   [MANUAL OVERRIDE]" : "") + "\n" +
+                   "CL = " + fm.currentCLScore.ToString("F0") +
+                   "   shadow level = L" + fm.GetShadowLevel() +
+                   (fm.GetShadowLevel() == FidelityManager.MaxLevel
+                       ? "  (immediate hard possible)" : "");
+        if (fm.HasPendingLevelChange())
             s += "\nChange queued - applies when the participant lets go";
         return s;
     }

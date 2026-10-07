@@ -93,10 +93,10 @@ public class ExperimentConfigManager : MonoBehaviour
 
         ApplyVisibility(config);
 
-        // Three-level ladder: Level 2 and 1 are high interaction fidelity,
-        // Level 0 is low fidelity (system places the equipment).
-        int level = fidelityManager != null ? fidelityManager.GetCurrentLevel() : FidelityManager.MaxLevel;
-        bool isHighFidelity = (level == 1 || level == 2);
+        // High interaction fidelity = the student places the equipment.
+        // Low fidelity = the system places it (Level 0, or group B's
+        // "auto setup" request with or without the aid).
+        bool isHighFidelity = fidelityManager == null || !fidelityManager.IsLowFidelity();
 
         if (isHighFidelity)
         {

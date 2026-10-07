@@ -99,9 +99,12 @@ public class ConceptualAidManager : MonoBehaviour
     public float arrowHeadSize = 0.012f;
     public float arrowLabelFontSize = 2f;
     public float arrowLabelSideOffset = 0.035f;
-    public string tensionSymbol = "T";
-    public string weightSymbol = "W";
-    [Tooltip("Off: the W arrow starts at the same point as that object's T " +
+    // Arrow letters: F = rope force (tension), G = gravity (weight).
+    // Fixed in code, not in the Inspector: the scene still stores the old
+    // values "T" and "W", and a serialized field would silently keep them.
+    private const string tensionSymbol = "F";
+    private const string weightSymbol = "G";
+    [Tooltip("Off: the G arrow starts at the same point as that object's F " +
              "arrow. On: it starts at the bottom face of the lowest weight.")]
     public bool weightArrowFromChainBottom = false;
     [Tooltip("Force arrows always point straight up or straight down. Off: " +
@@ -142,15 +145,15 @@ public class ConceptualAidManager : MonoBehaviour
     public bool invertComparisonOrder = false;
     [Tooltip("Draw a dashed datum line through the comparison baseline. " +
              "Without it there is nothing for the eye to measure the arrows " +
-             "against, and T and W appear to start from nowhere.")]
+             "against, and F and G appear to start from nowhere.")]
     public bool showComparisonBaseline = true;
     public Color comparisonBaselineColor = new Color(0.8f, 0.8f, 0.8f, 1f);
     public float comparisonBaselineWidth = 0.0015f;
     [Tooltip("How far the datum line extends past the outermost arrow.")]
     public float comparisonBaselineMargin = 0.05f;
-    [Tooltip("Rule off the comparison layout in units of one rope's T, above " +
+    [Tooltip("Rule off the comparison layout in units of one rope's F, above " +
              "and below the baseline. Without a scale the eye cannot tell " +
-             "whether the T stack is taller than W or merely looks it.")]
+             "whether the F stack is taller than G or merely looks it.")]
     public bool showComparisonGrid = true;
     public Color comparisonGridColor = new Color(0.62f, 0.62f, 0.62f, 1f);
     public float comparisonGridWidth = 0.0008f;
@@ -383,8 +386,13 @@ public class ConceptualAidManager : MonoBehaviour
     /// <summary>Hooked to FidelityManager.onFidelityLevelChanged in the Inspector.</summary>
     public void OnFidelityLevelChanged(int newLevel)
     {
-        // Three-level ladder: aid is on at Level 1 and Level 0, off at Level 2.
-        SetAidEnabled(newLevel == 0 || newLevel == 1);
+        // Aid and setup mode are separate switches (group B can have either
+        // without the other), so ask FidelityManager directly. The fallback
+        // decodes the display code: aid is on at 1 and 0, off at 2 and 3.
+        if (fidelityManager != null)
+            SetAidEnabled(fidelityManager.IsAidOn());
+        else
+            SetAidEnabled(newLevel == 0 || newLevel == 1);
     }
 
     public void SetAidEnabled(bool enabled)
@@ -1368,7 +1376,7 @@ public class ConceptualAidManager : MonoBehaviour
     {
         if (tensionUsed >= tensionPool.Count)
         {
-            tensionPool.Add(new ForceArrowVisual(aidRoot, "T_" + tensionPool.Count,
+            tensionPool.Add(new ForceArrowVisual(aidRoot, "F_" + tensionPool.Count,
                 PhysicsConstants.TensionColor, arrowLineWidth, arrowHeadSize,
                 arrowLabelFontSize, arrowLabelSideOffset, arrowPlaneNormal, renderOnTop));
         }
@@ -1381,7 +1389,7 @@ public class ConceptualAidManager : MonoBehaviour
     {
         if (weightUsed >= weightPool.Count)
         {
-            weightPool.Add(new ForceArrowVisual(aidRoot, "W_" + weightPool.Count,
+            weightPool.Add(new ForceArrowVisual(aidRoot, "G_" + weightPool.Count,
                 PhysicsConstants.WeightColor, arrowLineWidth, arrowHeadSize,
                 arrowLabelFontSize, arrowLabelSideOffset, arrowPlaneNormal, renderOnTop));
         }

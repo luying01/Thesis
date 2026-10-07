@@ -3616,7 +3616,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 1306385943}
+  m_Material: {fileID: 1371209554}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
@@ -7337,51 +7337,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1298058750}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!21 &1306385943
-Material:
-  serializedVersion: 8
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: RoundedPanel (instance)
-  m_Shader: {fileID: 4800000, guid: ff7bb2996a0296e45a342e211da6ec19, type: 3}
-  m_Parent: {fileID: 0}
-  m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
-  m_InvalidKeywords: []
-  m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
-  m_LockedProperties: 
-  m_SavedProperties:
-    serializedVersion: 3
-    m_TexEnvs:
-    - _MainTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    m_Ints: []
-    m_Floats:
-    - _Alpha: 1
-    - _Aspect: 3.5704312
-    - _BorderWidth: 0.05
-    - _ColorMask: 15
-    - _Radius: 0.35
-    - _Stencil: 0
-    - _StencilComp: 8
-    - _StencilOp: 0
-    - _StencilReadMask: 255
-    - _StencilWriteMask: 255
-    - _ZTest: 4
-    m_Colors:
-    - _BorderColor: {r: 0.863, g: 0.78, b: 0.604, a: 1}
-    - _FillColor: {r: 0.941, g: 0.89, b: 0.776, a: 1}
-  m_BuildTextureStacks: []
-  m_AllowLocking: 1
 --- !u!1 &1356540545
 GameObject:
   m_ObjectHideFlags: 0
@@ -7663,6 +7618,51 @@ Material:
     - _FaceColor: {r: 0.23460706, g: 0.990566, b: 0.023362402, a: 1}
     - _OutlineColor: {r: 1, g: 1, b: 1, a: 1}
     - _UnderlayColor: {r: 0, g: 0, b: 0, a: 0.5}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
+--- !u!21 &1371209554
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: RoundedPanel (instance)
+  m_Shader: {fileID: 4800000, guid: ff7bb2996a0296e45a342e211da6ec19, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _Alpha: 1
+    - _Aspect: 3.5704312
+    - _BorderWidth: 0.05
+    - _ColorMask: 15
+    - _Radius: 0.35
+    - _Stencil: 0
+    - _StencilComp: 8
+    - _StencilOp: 0
+    - _StencilReadMask: 255
+    - _StencilWriteMask: 255
+    - _ZTest: 4
+    m_Colors:
+    - _BorderColor: {r: 0.863, g: 0.78, b: 0.604, a: 1}
+    - _FillColor: {r: 0.941, g: 0.89, b: 0.776, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!1001 &1379576570
@@ -9790,6 +9790,7 @@ GameObject:
   - component: {fileID: 1622549488}
   - component: {fileID: 1622549489}
   - component: {fileID: 1622549490}
+  - component: {fileID: 1622549491}
   m_Layer: 0
   m_Name: AdaptiveSystem
   m_TagString: Untagged
@@ -9824,11 +9825,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1ebeb6314b3941d4dab7d881867630c5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  group: 1
   config: {fileID: 11400000, guid: d12562b223b4e084ea6b216c6c191a74, type: 2}
   currentCLScore: 0
-  startLevel: 0
   manualMode: 0
-  currentLevel: 0
+  aidOn: 0
+  lowFidelity: 0
+  shadowLevel: 2
   onFidelityLevelChanged:
     m_PersistentCalls:
       m_Calls:
@@ -9860,7 +9863,9 @@ MonoBehaviour:
   ropeGrabLeft: {fileID: 1002910130}
   ropeGrabRight: {fileID: 1138261961}
   pulleyPhysics: {fileID: 1144867055}
-  pendingLevel: -1
+  hasPending: 0
+  pendingAid: 0
+  pendingLow: 0
 --- !u!114 &1622549485
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9938,8 +9943,6 @@ MonoBehaviour:
   arrowHeadSize: 0.008
   arrowLabelFontSize: 0.1
   arrowLabelSideOffset: 0.02
-  tensionSymbol: T
-  weightSymbol: W
   weightArrowFromChainBottom: 0
   forceArrowsAxisAligned: 1
   hookSideOffset: 0.03
@@ -10050,7 +10053,6 @@ MonoBehaviour:
   resetManager: {fileID: 314011531}
   warningUI: {fileID: 1516890148}
   fidelityManager: {fileID: 1622549484}
-  activeLevels: 0200000003000000
   returnDuration: 0.3
   warningMessage: The movable pulley must hang on the rope
 --- !u!114 &1622549489
@@ -10087,10 +10089,27 @@ MonoBehaviour:
   baselineMusicClip: {fileID: 0}
   musicVolume: 0.3
   musicFadeSeconds: 2
-  hoverVolume: 0.3
+  hoverVolume: 0.6
   confirmVolume: 0.6
-  feedbackVolume: 0.2
+  feedbackVolume: 0.3
   hoverMinInterval: 0.08
+--- !u!114 &1622549491
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1622549482}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ddb88f5c9506bec41b7c8bacbcbd16ed, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SessionLogger
+  experimentLogger: {fileID: 1367819943}
+  fidelityManager: {fileID: 1622549484}
+  quizManager: {fileID: 1118426412}
+  summaryPath: 
+  eventsPath: 
 --- !u!1001 &1651435603
 PrefabInstance:
   m_ObjectHideFlags: 0
