@@ -160,7 +160,11 @@ public class ForceArrowVisual
         if (label != null)
         {
             label.transform.position = startPoint + direction * (length * 0.5f) + side * labelOffset;
-            label.transform.rotation = Quaternion.LookRotation(planeNormal, Vector3.up);
+            // TextMeshPro reads correctly when the camera looks along the
+            // label's forward axis, so forward must point AWAY from the viewer.
+            // The old LookRotation(planeNormal) showed the label from behind -
+            // invisible with the symmetric letters T and W, obvious with F and G.
+            label.transform.rotation = Quaternion.LookRotation(-planeNormal, Vector3.up);
         }
     }
 

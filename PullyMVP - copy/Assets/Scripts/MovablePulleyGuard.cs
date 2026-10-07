@@ -25,9 +25,9 @@ public class MovablePulleyGuard : MonoBehaviour
     public FidelityManager fidelityManager;
 
     [Header("Behaviour")]
-    [Tooltip("Fidelity levels at which a misplaced pulley is returned on its own. " +
-             "At other levels MovablePulleyLock resets the whole configuration.")]
-    public int[] activeLevels = new int[] { 2, 3 };
+    // Active whenever the student places the equipment (manual setup). With
+    // auto setup MovablePulleyLock resets the whole configuration instead.
+    // (Replaces the old activeLevels array, which used four-level numbers.)
     [Tooltip("Glide time back to the start position. A teleport gives the student " +
              "no chance to connect the warning with what moved.")]
     public float returnDuration = 0.3f;
@@ -74,8 +74,7 @@ public class MovablePulleyGuard : MonoBehaviour
     private bool IsActiveAtCurrentLevel()
     {
         if (fidelityManager == null) return true;
-        int level = fidelityManager.GetCurrentLevel();
-        return System.Array.IndexOf(activeLevels, level) >= 0;
+        return !fidelityManager.IsLowFidelity();
     }
 
     private IEnumerator WarnAndReturn()

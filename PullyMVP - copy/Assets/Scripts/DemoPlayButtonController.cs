@@ -4,15 +4,19 @@ using TMPro;
 /// <summary>
 /// Drives the Play button.
 ///
-/// The button serves two purposes, split by fidelity level (three-level ladder):
+/// The button serves two purposes, driven by two separate switches on
+/// FidelityManager (group B can turn either on without the other):
 ///
-///   Level 2  high fidelity, no aid    -> button hidden
-///   Level 1  high fidelity + aid      -> replay the conceptual aid only
-///   Level 0  low fidelity + aid       -> play the equipment demo / placement,
-///                                        then replay the conceptual aid
+///   auto setup ON  -> play the equipment demo / placement first
+///   aid ON         -> afterwards, replay the conceptual aid
 ///
-/// At Level 1 the button never moves equipment: object placement is the
-/// student's own at high fidelity.
+///   manual, no aid  (Level 2)  -> button hidden
+///   manual + aid    (Level 1)  -> replay the conceptual aid only
+///   auto + aid      (Level 0)  -> equipment, then aid replay
+///   auto, no aid    (group B)  -> equipment only; no aid replay afterwards
+///
+/// With manual setup the button never moves equipment: object placement is
+/// the student's own at high fidelity.
 /// </summary>
 public class DemoPlayButtonController : MonoBehaviour
 {
@@ -33,12 +37,6 @@ public class DemoPlayButtonController : MonoBehaviour
     public QuizManager quizManager;
     public ExperimentConfigManager experimentConfigManager;
     public ConceptualAidManager conceptualAidManager;
-
-    // Fixed in code, not in the Inspector: the scene still stores the arrays
-    // from the four-level version ({0,1} and {0,2}), and a serialized value
-    // would silently override any new default written here.
-    private static readonly int[] demoLevels = new int[] { 0 };
-    private static readonly int[] aidReplayLevels = new int[] { 0, 1 };
 
     private bool isPlaying = false;
     private bool hasPlayedStaticEquip = false;
@@ -96,36 +94,38 @@ public class DemoPlayButtonController : MonoBehaviour
     {
         if (playButtonLabel == null || d == null || fidelityManager == null) return;
 
-        int level = fidelityManager.GetCurrentLevel();
-        string wanted = CanRunEquipment(level, d) ? equipmentLabel : aidReplayLabel;
+        string wanted = CanRunEquipment(d) ? equipmentLabel : aidReplayLabel;
 
         if (playButtonLabel.text != wanted)
             playButtonLabel.text = wanted;
     }
 
-    private static bool Contains(int[] levels, int level)
+    private bool AutoSetupOn()
     {
-        return levels != null && System.Array.IndexOf(levels, level) >= 0;
+        return fidelityManager != null && fidelityManager.IsLowFidelity();
+    }
+
+    private bool AidOn()
+    {
+        return fidelityManager != null && fidelityManager.IsAidOn();
     }
 
     private bool ShouldShowButton()
     {
         if (fidelityManager == null || quizManager == null) return false;
 
-        int level = fidelityManager.GetCurrentLevel();
-
         DifficultySetting d = quizManager.GetCurrentDifficultySettingPublic();
         if (d == null) return false;
 
-        if (CanRunEquipment(level, d)) return true;
-        if (CanReplayAid(level)) return true;
+        if (CanRunEquipment(d)) return true;
+        if (CanReplayAid()) return true;
 
         return false;
     }
 
-    private bool CanRunEquipment(int level, DifficultySetting d)
+    private bool CanRunEquipment(DifficultySetting d)
     {
-        if (!Contains(demoLevels, level)) return false;
+        if (!AutoSetupOn()) return false;
 
         // Once the demo has run, the button's job changes: pressing it again
         // should replay the force diagram, not re-hang the weights. Without
@@ -137,9 +137,10 @@ public class DemoPlayButtonController : MonoBehaviour
         return hasStatic && !hasPlayedStaticEquip;
     }
 
-    private bool CanReplayAid(int level)
+    private bool CanReplayAid()
     {
-        if (!Contains(aidReplayLevels, level)) return false;
+        // No aid -> no aid replay, also when auto setup is on.
+        if (!AidOn()) return false;
         return conceptualAidManager != null && conceptualAidManager.CanReplay();
     }
 
@@ -152,12 +153,11 @@ public class DemoPlayButtonController : MonoBehaviour
             : null;
         if (d == null) return;
 
-        int level = fidelityManager != null ? fidelityManager.GetCurrentLevel() : FidelityManager.MaxLevel;
-
         // Equipment first: at low fidelity the demo ends with the system at
         // rest, which is exactly what lets the force aid trigger itself.
-        if (CanRunEquipment(level, d) && experimentConfigManager != null)
+        if (CanRunEquipment(d) && experimentConfigManager != null)
         {
+            SessionLogger.Log("PlayPressed", "Participant", "equipment");
             isPlaying = true;
             playButtonRoot.SetActive(false);
 
@@ -177,8 +177,9 @@ public class DemoPlayButtonController : MonoBehaviour
         }
 
         // Otherwise the press means "show me that again".
-        if (!CanReplayAid(level)) return;
+        if (!CanReplayAid()) return;
 
+        SessionLogger.Log("PlayPressed", "Participant", "aidReplay");
         conceptualAidManager.OnReplayRequested();
 
         // A demo retracts the weights when it ends, so replaying the force
@@ -186,7 +187,7 @@ public class DemoPlayButtonController : MonoBehaviour
         // Re-place the question's own configuration first and let the aid
         // sample the real weights, so the diagram and the apparatus agree.
         ExperimentConfig replayConfig = ResolveReplayConfig(d);
-        if (Contains(demoLevels, level)
+        if (AutoSetupOn()
             && experimentConfigManager != null
             && replayConfig != null)
         {

@@ -31,6 +31,9 @@ public class Difficulties
 public class Question
 {
     public int id;
+    [Tooltip("Practice question: no hard version, never triggers the hard " +
+             "rule, logged as Order 0 in the session summary.")]
+    public bool isPractice;
     public Difficulties difficulties;
 }
 
@@ -203,14 +206,20 @@ public class QuizManager : MonoBehaviour
 
         questionText.text = d.imagePath + ". " + d.questionText;
 
+        // A question may use fewer than four options (the practice pages use
+        // two); the unused buttons are hidden.
         string[] labels = { "A", "B", "C", "D" };
         for (int i = 0; i < optionButtons.Length; i++)
         {
+            bool used = d.options != null && i < d.options.Length;
+            optionButtons[i].gameObject.SetActive(used);
+            if (!used) continue;
             TextMeshProUGUI btnText = optionButtons[i].GetComponentInChildren<TextMeshProUGUI>();
             btnText.text = labels[i] + ". " + d.options[i];
         }
 
-        if (!string.IsNullOrEmpty(d.imagePath))
+        bool practice = quizData.questions[index].isPractice;
+        if (!practice && !string.IsNullOrEmpty(d.imagePath))
         {
             questionImage.gameObject.SetActive(true);
             StartCoroutine(LoadImage(d.imagePath));
@@ -244,6 +253,8 @@ public class QuizManager : MonoBehaviour
 
         SetConfirmMode();
         ClearFeedback();
+
+        SessionLogger.QuestionShown();
     }
 
     // -- Confirm / Next / Finish ----------------------------------------
@@ -283,14 +294,17 @@ public class QuizManager : MonoBehaviour
         {
             bool triggerImmediateHard = false;
 
-            if (currentDifficulty == "normal")
+            if (currentDifficulty == "normal" && !IsPractice(currentIndex))
             {
                 hardPending[currentIndex] = true;
 
-                // Condition A: first-attempt correct AND CL was at the lowest band
-                // (Level 2, the highest fidelity level) at the time.
+                // Condition A (challenge escalation): first-attempt correct AND
+                // the CL score sat in the lowest band at the time. Uses the
+                // SHADOW level, which every group computes from CL with the same
+                // thresholds, so the rule is identical in groups A, B and C
+                // regardless of what support the scene is showing.
                 bool clWasLowest = fidelityManager != null
-                    && fidelityManager.GetCurrentLevel() == FidelityManager.MaxLevel;
+                    && fidelityManager.GetShadowLevel() == FidelityManager.MaxLevel;
                 bool firstAttemptCorrect = !normalHadWrongAttempt[currentIndex];
                 triggerImmediateHard = clWasLowest && firstAttemptCorrect;
             }
@@ -298,6 +312,8 @@ public class QuizManager : MonoBehaviour
             bool willFinish = false;
             if (currentDifficulty == "hard")
                 willFinish = ComputeIsLastRemainingAfterThisHard();
+
+            SessionLogger.Answer(true, AnswerLetters(selectedAnswers));
 
             ShowFeedback("CORRECT", Color.green);
             if (SFXManager.Instance != null) SFXManager.Instance.PlayCorrect();
@@ -314,6 +330,8 @@ public class QuizManager : MonoBehaviour
         {
             if (currentDifficulty == "normal")
                 normalHadWrongAttempt[currentIndex] = true;
+
+            SessionLogger.Answer(false, AnswerLetters(selectedAnswers));
 
             ShowFeedback("WRONG", Color.red);
             if (SFXManager.Instance != null) SFXManager.Instance.PlayWrong();
@@ -347,7 +365,7 @@ public class QuizManager : MonoBehaviour
 
     private void OnFinish()
     {
-        SaveResults();
+        SessionLogger.QuizFinished();
         ShowThankYouScreen();
         Debug.Log("[QuizManager] Quiz finished - all questions completed.");
     }
@@ -613,7 +631,6 @@ public class QuizManager : MonoBehaviour
             return;
         }
 
-        SaveResults();
         FindFirstObjectByType<ResetManager>().ResetAll();
 
         if (flowPhase == FlowPhase.HardBackfill)
@@ -640,7 +657,6 @@ public class QuizManager : MonoBehaviour
 
     public void NextQuestion()
     {
-        SaveResults();
         FindFirstObjectByType<ResetManager>().ResetAll();
 
         if (flowPhase == FlowPhase.ImmediateHardInterrupt)
@@ -705,6 +721,14 @@ public class QuizManager : MonoBehaviour
         }
     }
 
+    /// <summary>Selected options as letters for the log, e.g. "B" or "A+C".</summary>
+    private static string AnswerLetters(List<int> selected)
+    {
+        List<int> sorted = new List<int>(selected);
+        sorted.Sort();
+        return string.Join("+", sorted.Select(i => ((char)('A' + i)).ToString()));
+    }
+
     bool IsAnswerCorrect(List<int> selected, int[] correct)
     {
         if (selected.Count != correct.Length) return false;
@@ -715,30 +739,6 @@ public class QuizManager : MonoBehaviour
         return sortedSelected.SequenceEqual(sortedCorrect);
     }
 
-    public void SaveResults()
-    {
-        string result = "{\n  \"answers\": [";
-        for (int i = 0; i < studentAnswers.Length; i++)
-        {
-            Question q = quizData.questions[i];
-            string diffLabel = hardShown[i] ? "hard" : "normal";
-            DifficultySetting d = hardShown[i] ? q.difficulties.hard : q.difficulties.normal;
-
-            bool isCorrect = IsAnswerCorrect(studentAnswers[i], d.correctAnswer);
-            string selectedStr = string.Join(",", studentAnswers[i]);
-
-            result += "\n    {\"questionId\": " + q.id +
-                      ", \"difficulty\": \"" + diffLabel + "\"" +
-                      ", \"selected\": [" + selectedStr + "]" +
-                      ", \"correct\": " + (isCorrect ? "true" : "false") + "}";
-            if (i < studentAnswers.Length - 1) result += ",";
-        }
-        result += "\n  ]\n}";
-
-        string savePath = Path.Combine(Application.persistentDataPath, "quiz_results.json");
-        File.WriteAllText(savePath, result);
-        Debug.Log("[QuizManager] Results saved to: " + savePath);
-    }
     public DifficultySetting GetCurrentDifficultySettingPublic()
     {
         if (quizData == null) return null;
@@ -748,6 +748,13 @@ public class QuizManager : MonoBehaviour
     // -- Wizard-of-Oz Jump ----------------------------------------
 
     public bool IsLoaded() { return quizData != null && quizData.questions != null; }
+
+    /// <summary>True for the practice question (no hard version, not scored).</summary>
+    public bool IsPractice(int index)
+    {
+        return IsLoaded() && index >= 0 && index < quizData.questions.Length
+            && quizData.questions[index].isPractice;
+    }
     public int GetQuestionCount() { return IsLoaded() ? quizData.questions.Length : 0; }
     public int GetCurrentIndex() { return currentIndex; }
     public bool IsCurrentHard() { return currentDifficulty == "hard"; }
@@ -794,7 +801,6 @@ public class QuizManager : MonoBehaviour
         }
         quizFinished = false;
 
-        SaveResults();
         ResetManager rm = FindFirstObjectByType<ResetManager>();
         if (rm != null) rm.ResetAll();
 
@@ -818,6 +824,9 @@ public class QuizManager : MonoBehaviour
 
         backfillQueue.Clear();
         backfillPointer = -1;
+
+        SessionLogger.Log("WizardJump", "Wizard",
+            "to=" + GetQuestionLabel(index, hard) + (hard ? " hard" : " normal"));
 
         currentIndex = index;
         currentDifficulty = hard ? "hard" : "normal";

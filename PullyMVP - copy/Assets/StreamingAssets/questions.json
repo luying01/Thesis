@@ -1,6 +1,54 @@
 {
   "questions": [
     {
+      "id": -2,
+      "isPractice": true,
+      "difficulties": {
+        "normal": {
+          "questionText": "Practice: How many weights are hanging on the left hook?",
+          "imagePath": "P1",
+          "options": ["0", "1", "2", "3"],
+          "correctAnswer": [1],
+          "aidType": "force",
+          "experimentConfigs": [
+            {
+              "label": "I",
+              "useFixedPulley": true,
+              "useMovablePulley": false,
+              "fixedPulleyHangerIndex": 2,
+              "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.0 },
+              "weightAssignments": [
+                { "weightName": "weight_25g_1", "target": "Hook_L" }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": -1,
+      "isPractice": true,
+      "difficulties": {
+        "normal": {
+          "questionText": "Practice: Is the movable pulley now placed on the rope?",
+          "imagePath": "P2",
+          "options": ["Yes", "No"],
+          "correctAnswer": [0],
+          "aidType": "",
+          "experimentConfigs": [
+            {
+              "label": "I",
+              "useFixedPulley": true,
+              "useMovablePulley": true,
+              "fixedPulleyHangerIndex": 2,
+              "movablePulleyOffset": { "x": 0.0, "y": -0.15, "z": 0.05 },
+              "weightAssignments": []
+            }
+          ]
+        }
+      }
+    },
+    {
       "id": 1,
       "difficulties": {
         "normal": {

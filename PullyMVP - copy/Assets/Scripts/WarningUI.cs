@@ -191,9 +191,9 @@ public class WarningUI : MonoBehaviour
         // between automated steps, which is not an error.
         if (fidelityManager != null)
         {
-            int level = fidelityManager.GetCurrentLevel();
-            bool isHighFidelity = (level == 2 || level == 3);
-            if (!isHighFidelity) return;
+            // Manual setup (Level 2 and 1) = high fidelity. The old check used
+            // the four-level numbers (2 or 3) and wrongly skipped Level 1.
+            if (fidelityManager.IsLowFidelity()) return;
         }
 
         if (pulleySystem == null) return;
