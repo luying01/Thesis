@@ -101,7 +101,7 @@ public class SessionLogger : MonoBehaviour
     {
         try
         {
-            string folder = Path.Combine(Application.persistentDataPath, "CognitiveLoadData");
+            string folder = Path.Combine(Application.persistentDataPath, $"Participant_{experimentLogger.participantId}");
             Directory.CreateDirectory(folder);
 
             string group = fidelityManager != null ? fidelityManager.GetGroupLabel() : "X";

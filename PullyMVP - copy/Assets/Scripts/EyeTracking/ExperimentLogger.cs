@@ -7,6 +7,8 @@ public class ExperimentLogger : MonoBehaviour
     [Header("Participant")]
     public int participantId = 1;
 
+    public string Folder { get; private set; }
+    public string DataFolder { get; private set; }
     private string calibrationPath;
     private string measurementPath;
     private string predictionPath;
@@ -17,25 +19,30 @@ public class ExperimentLogger : MonoBehaviour
 
     public void StartLogging()
     {
-        string folder = Path.Combine(
-            Application.persistentDataPath,
+        Folder = Path.Combine(
+            Application.persistentDataPath, 
+            $"Participant_{participantId}"
+        );
+        
+        DataFolder = Path.Combine(
+            Folder,
             "CognitiveLoadData"
         );
 
-        Directory.CreateDirectory(folder);
+        Directory.CreateDirectory(DataFolder);
 
         calibrationPath = Path.Combine(
-            folder,
+            DataFolder,
             $"participant_{participantId}_calibration.csv"
         );
 
         measurementPath = Path.Combine(
-            folder,
+            DataFolder,
             $"participant_{participantId}_measurements.csv"
         );
 
         predictionPath = Path.Combine(
-            folder,
+            DataFolder,
             $"participant_{participantId}_predictions.csv"
         );
         
