@@ -92,6 +92,12 @@ public class QuizManager : MonoBehaviour
     // first attempt, not just eventually.
     private bool[] normalHadWrongAttempt;
 
+    // Whether each question version has ever been answered correctly. A version
+    // that was answered correctly before opens directly in "Next" mode when the
+    // participant returns to it, so they do not have to answer it again.
+    private bool[] normalCorrect;
+    private bool[] hardCorrect;
+
     // -- Difficulty Flow State ----------------------------------------
     private enum FlowPhase { NormalRound, ImmediateHardInterrupt, HardBackfill }
     private FlowPhase flowPhase = FlowPhase.NormalRound;
@@ -166,6 +172,8 @@ public class QuizManager : MonoBehaviour
             hardPending = new bool[count];
             hardShown = new bool[count];
             normalHadWrongAttempt = new bool[count];
+            normalCorrect = new bool[count];
+            hardCorrect = new bool[count];
             for (int i = 0; i < count; i++)
             {
                 studentAnswers[i] = new List<int>();
@@ -254,7 +262,25 @@ public class QuizManager : MonoBehaviour
         SetConfirmMode();
         ClearFeedback();
 
+        // Returning to a version that was already answered correctly: the
+        // participant may move on without answering it again.
+        if (IsCurrentVersionCorrect())
+            SetNextMode();
+
         SessionLogger.QuestionShown();
+    }
+
+    private bool IsCurrentVersionCorrect()
+    {
+        if (normalCorrect == null || hardCorrect == null) return false;
+        return currentDifficulty == "hard" ? hardCorrect[currentIndex] : normalCorrect[currentIndex];
+    }
+
+    private void MarkCurrentVersionCorrect()
+    {
+        if (normalCorrect == null || hardCorrect == null) return;
+        if (currentDifficulty == "hard") hardCorrect[currentIndex] = true;
+        else normalCorrect[currentIndex] = true;
     }
 
     // -- Confirm / Next / Finish ----------------------------------------
@@ -266,6 +292,12 @@ public class QuizManager : MonoBehaviour
         // on the same object. TouchButton's own cooldown does not cover the
         // UI path, so one trigger press advanced two questions.
         if (Time.time - _lastNavInputTime < navInputCooldown) return;
+
+        // The current question is about to switch to its hard version. Moving
+        // on now would let that switch land on the NEXT question instead
+        // (2-1 flashing up and turning into 2-2), so the press is ignored.
+        if (IsHardSwitchPending()) return;
+
         _lastNavInputTime = Time.time;
         if (quizFinished)
         {
@@ -314,17 +346,23 @@ public class QuizManager : MonoBehaviour
                 willFinish = ComputeIsLastRemainingAfterThisHard();
 
             SessionLogger.Answer(true, AnswerLetters(selectedAnswers));
+            MarkCurrentVersionCorrect();
 
             ShowFeedback("CORRECT", Color.green);
             if (SFXManager.Instance != null) SFXManager.Instance.PlayCorrect();
 
-            if (willFinish)
+            if (triggerImmediateHard)
+            {
+                // The hard version follows automatically after a short pause.
+                // No "Next" in the meantime: the participant stays on this
+                // question until the switch has happened.
+                SetWaitingMode();
+                immediateHardCoroutine = StartCoroutine(DelayedImmediateHardSwitch(currentIndex));
+            }
+            else if (willFinish)
                 EnterFinishedState();
             else
                 SetNextMode();
-
-            if (triggerImmediateHard)
-                immediateHardCoroutine = StartCoroutine(DelayedImmediateHardSwitch());
         }
         else
         {
@@ -346,6 +384,14 @@ public class QuizManager : MonoBehaviour
         awaitingConfirm = true;
         if (nextButtonText != null)
             nextButtonText.text = "Confirm";
+    }
+
+    /// <summary>Between a correct answer and the automatic switch to hard.</summary>
+    private void SetWaitingMode()
+    {
+        awaitingConfirm = false;
+        if (nextButtonText != null)
+            nextButtonText.text = "...";
     }
 
     private void SetNextMode()
@@ -435,14 +481,34 @@ public class QuizManager : MonoBehaviour
 
     // -- Difficulty Flow ----------------------------------------
 
-    private IEnumerator DelayedImmediateHardSwitch()
+    private IEnumerator DelayedImmediateHardSwitch(int fromIndex)
     {
         yield return new WaitForSeconds(upgradeDelaySeconds);
         immediateHardCoroutine = null;
+
+        // Safety net: only switch the question that triggered the switch.
+        if (currentIndex != fromIndex || currentDifficulty != "normal" || showingThankYou)
+            yield break;
+
         flowPhase = FlowPhase.ImmediateHardInterrupt;
         currentDifficulty = "hard";
         studentAnswers[currentIndex] = new List<int>();
         DisplayQuestion(currentIndex);
+    }
+
+    private bool IsHardSwitchPending()
+    {
+        return immediateHardCoroutine != null;
+    }
+
+    /// <summary>Drop a pending normal-to-hard switch (any navigation does this).</summary>
+    private void CancelImmediateHardSwitch()
+    {
+        if (immediateHardCoroutine != null)
+        {
+            StopCoroutine(immediateHardCoroutine);
+            immediateHardCoroutine = null;
+        }
     }
 
     private bool AnyHardPendingRemaining()
@@ -622,6 +688,7 @@ public class QuizManager : MonoBehaviour
         // UI path, so one trigger press advanced two questions.
         if (Time.time - _lastNavInputTime < navInputCooldown) return;
         _lastNavInputTime = Time.time;
+        CancelImmediateHardSwitch();
         if (showingThankYou)
         {
             showingThankYou = false;
@@ -657,6 +724,7 @@ public class QuizManager : MonoBehaviour
 
     public void NextQuestion()
     {
+        CancelImmediateHardSwitch();
         FindFirstObjectByType<ResetManager>().ResetAll();
 
         if (flowPhase == FlowPhase.ImmediateHardInterrupt)
@@ -788,11 +856,7 @@ public class QuizManager : MonoBehaviour
         if (index < 0 || index >= quizData.questions.Length) return;
         if (hard && quizData.questions[index].difficulties.hard == null) return;
 
-        if (immediateHardCoroutine != null)
-        {
-            StopCoroutine(immediateHardCoroutine);
-            immediateHardCoroutine = null;
-        }
+        CancelImmediateHardSwitch();
 
         if (showingThankYou)
         {

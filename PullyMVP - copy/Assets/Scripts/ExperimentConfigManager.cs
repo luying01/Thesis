@@ -72,10 +72,59 @@ public class ExperimentConfigManager : MonoBehaviour
 
     // ── Fidelity Level Change ─────────────────────────────────────────────
 
+    // Setup mode seen at the last level change, so a change of the AUTO SETUP
+    // switch can be told apart from a change of the aid switch alone.
+    private bool lastLowFidelity = false;
+
     public void OnFidelityLevelChanged(int newLevel)
     {
+        bool low = fidelityManager != null && fidelityManager.IsLowFidelity();
+        bool setupModeChanged = low != lastLowFidelity;
+        lastLowFidelity = low;
+
+        if (setupModeChanged)
+        {
+            // Auto setup switched on or off (group B request, or group C moving
+            // between Level 1 and Level 0): put the equipment back exactly as
+            // the question first showed it. Without this, equipment the demo
+            // had mounted stayed mounted, and the table looked emptied.
+            ResetToQuestionStart();
+            return;
+        }
+
+        // Only the aid changed: keep whatever the participant has built.
         if (currentConfig == null) return;
         ApplyConfig(currentConfig);
+    }
+
+    /// <summary>
+    /// Stop any running placement / demo and return the equipment to the state
+    /// the current question starts in (the same steps as showing the question:
+    /// ResetManager.ResetAll, then the question's configuration).
+    /// </summary>
+    public void ResetToQuestionStart()
+    {
+        // StopCoroutine on the demo would leave the nested move coroutines
+        // running, and they would keep dragging objects after the reset.
+        StopAllCoroutines();
+        currentDemoCoroutine = null;
+        activeCoroutines.Clear();
+
+        if (conceptualAidManager != null)
+            conceptualAidManager.ResetForSetupChange();
+
+        if (currentConfig == null)
+        {
+            ShowAllEquipment();   // also runs ResetManager.ResetAll
+            return;
+        }
+
+        if (resetManager != null)
+            resetManager.ResetAll();
+
+        ApplyConfig(currentConfig);
+        SessionLogger.Log("EquipmentReset", "System", "setup mode changed");
+        Debug.Log("[ExperimentConfigManager] Setup mode changed - equipment back to question start");
     }
 
     // ── Main Entry Point ─────────────────────────────────────────────────

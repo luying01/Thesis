@@ -42,6 +42,7 @@ public class DemoPlayButtonController : MonoBehaviour
     private bool hasPlayedStaticEquip = false;
     private bool hasPlayedDemoSequence = false;
     private DifficultySetting lastSeenDifficulty = null;
+    private bool lastAutoSetup = false;
 
     void Start()
     {
@@ -67,6 +68,18 @@ public class DemoPlayButtonController : MonoBehaviour
             hasPlayedDemoSequence = false;
             if (experimentConfigManager != null)
                 experimentConfigManager.StopCurrentDemo();
+        }
+
+        // Auto setup switched on or off: ExperimentConfigManager has put the
+        // equipment back to the question's start, so the button starts over
+        // too ("Set Up Weights" again if auto setup is on).
+        bool auto = AutoSetupOn();
+        if (auto != lastAutoSetup)
+        {
+            lastAutoSetup = auto;
+            isPlaying = false;
+            hasPlayedStaticEquip = false;
+            hasPlayedDemoSequence = false;
         }
 
         if (playButtonRoot == null) return;

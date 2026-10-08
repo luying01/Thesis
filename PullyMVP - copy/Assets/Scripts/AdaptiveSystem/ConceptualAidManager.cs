@@ -406,6 +406,16 @@ public class ConceptualAidManager : MonoBehaviour
     public bool IsAidEnabled() { return aidEnabled; }
 
     /// <summary>
+    /// Called by ExperimentConfigManager when the equipment is put back to the
+    /// question's starting state (auto setup switched on or off). Clears any
+    /// arrows, tracks and formula state that described the old setup.
+    /// </summary>
+    public void ResetForSetupChange()
+    {
+        ResetAllAids();
+    }
+
+    /// <summary>
     /// Entry point used by ExperimentConfigManager during a demo sequence.
     ///
     /// This has to do real work, not just self-triggered rest detection: a demo
