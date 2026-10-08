@@ -9,8 +9,13 @@ public class PupilBaselineCalibrator : MonoBehaviour
     public HTCHeadsetReader reader;
     public EyeBuffer buffer;
     public ExperimentLogger logger;
+    [Header("Calibration time")]
+    [Tooltip("Number of seconds for the user to adapt their eyes. Only the last 20 seconds are measured for calibration.")]
     public int seconds = 300;
+    [Header("Initialize calibration routine")]
     public bool BeginCalibration = false;
+    [Header("Stop calibration timer early")]
+    [Tooltip("Keep off by default. Enable to immediately begin the 20 second calibration timer.")]
     public bool EndCalibrationEarly = false;
 
     private float leftSum;
@@ -28,55 +33,54 @@ public class PupilBaselineCalibrator : MonoBehaviour
 
     public IEnumerator Calibrate()
     {
-        while (!BeginCalibration) 
+        yield return new WaitUntil(() => BeginCalibration);
+        
+        Debug.Log("Calibrating...");
+        Finished = false;
+
+        leftSum = 0;
+        rightSum = 0;
+        sampleCount = 0;
+        Left_Baseline = 0.0f;
+        Right_Baseline = 0.0f;
+
+        float endTime = Time.time + seconds; // number of seconds to relax
+
+        while (Time.time < endTime)
         {
-            Debug.Log("Calibrating...");
-            Finished = false;
-
-            leftSum = 0;
-            rightSum = 0;
-            sampleCount = 0;
-            Left_Baseline = 0.0f;
-            Right_Baseline = 0.0f;
-
-            float endTime = Time.time + seconds; // number of seconds to relax
-
-            while (Time.time < endTime)
+            if (EndCalibrationEarly && endTime > Time.time + 20)
             {
-                if (EndCalibrationEarly && endTime > Time.time + 20)
-                {
-                    endTime = Time.time + 20;
-                }
-
-                if (reader.HasValidPupils && (Time.time >= endTime - 20)) // Only use last 20 seconds to get baseline in similar lighting conditions
-                {
-                    leftSum += reader.LeftPupilDiameter;
-                    rightSum += reader.RightPupilDiameter;
-                    sampleCount++;
-
-                    logger.LogCalibrationSample(
-                        reader.LeftPupilDiameter,
-                        reader.RightPupilDiameter
-                    );
-
-
-                    Debug.Log("Sample count: " + sampleCount);
-                }
-
-                yield return null;
+                endTime = Time.time + 20;
             }
 
-            if (sampleCount != 0)
+            if (reader.HasValidPupils && (Time.time >= endTime - 20)) // Only use last 20 seconds to get baseline in similar lighting conditions
             {
-                Left_Baseline = leftSum / sampleCount;
-                Right_Baseline = rightSum / sampleCount;
+                leftSum += reader.LeftPupilDiameter;
+                rightSum += reader.RightPupilDiameter;
+                sampleCount++;
+
+                logger.LogCalibrationSample(
+                    reader.LeftPupilDiameter,
+                    reader.RightPupilDiameter
+                );
+
+
+                Debug.Log("Sample count: " + sampleCount);
             }
-            
 
-            buffer.LeftBaseline = Left_Baseline;
-            buffer.RightBaseline = Right_Baseline;
-
-            Finished = true;
+            yield return null;
         }
+
+        if (sampleCount != 0)
+        {
+            Left_Baseline = leftSum / sampleCount;
+            Right_Baseline = rightSum / sampleCount;
+        }
+        
+
+        buffer.LeftBaseline = Left_Baseline;
+        buffer.RightBaseline = Right_Baseline;
+
+        Finished = true;
     }
 }

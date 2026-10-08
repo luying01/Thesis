@@ -19,6 +19,8 @@ public class CognitiveLoadInference : MonoBehaviour
     public int FeatureCount { get; private set; } = 7;
 
     public int smoothingWindow = 10;
+    [Header("Smoothing window")]
+    [Tooltip("Number of predictions to use in the smoothed average.")]
 
     public float Logit { get; private set; }
     public float Probability { get; private set; }

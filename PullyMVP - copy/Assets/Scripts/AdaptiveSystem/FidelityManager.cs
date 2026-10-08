@@ -50,8 +50,7 @@ public class FidelityManager : MonoBehaviour
     public FidelityConfig config;
 
     [Header("CL Input (0-100)")]
-    [Tooltip("Fed by CognitiveLoadController in every group. Its UseModel must " +
-             "be ON for all groups, otherwise the shadow level never moves.")]
+    [Tooltip("Fed by CognitiveLoadController in every group.")]
     [Range(0f, 100f)]
     public float currentCLScore = 0f;
 

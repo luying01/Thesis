@@ -1,3 +1,4 @@
+using Unity;
 using UnityEngine;
 using Unity.InferenceEngine;
 using System.Collections.Generic;
@@ -17,8 +18,10 @@ public class CognitiveLoadController : MonoBehaviour
     private float probability;
     private float smooth_probability;
     public float Prediction { get; private set; }
-    public bool UseModel = false;
+    [Header("Begin measuring and logging samples")]
+    [Tooltip("Should be on by default. Used to begin and log measurements. Only disable if not wanting to collect measurements.")]
     public bool BeginMeasuring = false;
+    
 
 
     void Start()
@@ -29,7 +32,7 @@ public class CognitiveLoadController : MonoBehaviour
 
     IEnumerator RunCalibration()
     {
-        yield return StartCoroutine(calibrator.Calibrate());
+        yield return calibrator.Calibrate();
 
         logger.LogBaseline(
             buffer.LeftBaseline,
@@ -60,7 +63,7 @@ public class CognitiveLoadController : MonoBehaviour
                 model.Predict(window.Data, out logit, out probability, out smooth_probability);
 
                 Prediction = smooth_probability;
-                if (UseModel && currentWindowId > 5) // ignore the first couple of measurements to get stable predictions before setting the fidelity manager CL score 
+                if (currentWindowId > 5) // ignore the first couple of measurements to get stable predictions before setting the fidelity manager CL score 
                 {
                     fidelityManager.SetCLScore(Prediction * 100);
                 }
