@@ -22,9 +22,9 @@ public class FidelityConfig : ScriptableObject
 {
     [Header("Band Boundaries (0-100, three equal bands)")]
     [Tooltip("Boundary between Level 2 (no aid) and Level 1 (aid).")]
-    public float boundary2to1 = 33.33f;
+    public float boundary2to1 = 25.0f;
     [Tooltip("Boundary between Level 1 (aid) and Level 0 (low fidelity + aid).")]
-    public float boundary1to0 = 66.67f;
+    public float boundary1to0 = 50.0f;
 
     [Header("Buffer (dead band, applied on each side of a boundary)")]
     [Tooltip("Half-width of the dead band. 5 means a 10-point band in total.")]

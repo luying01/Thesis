@@ -77,6 +77,10 @@ public class PupilBaselineCalibrator : MonoBehaviour
             Right_Baseline = rightSum / sampleCount;
         }
         
+        if (reader.LeftPupilDiameter - Left_Baseline <= 0.001 && reader.RightPupilDiameter - Right_Baseline <= 0.001)
+        {
+            Debug.Log("INCONSISTENCIES IN CALIBRATION - CHECK FILE TO ENSURE HEADSET FUNCTIONALITY.");
+        }
 
         buffer.LeftBaseline = Left_Baseline;
         buffer.RightBaseline = Right_Baseline;
