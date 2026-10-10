@@ -12,7 +12,7 @@ public enum ExperimentGroup
 }
 
 /// <summary>
-/// Owns the support state shown in the scene and the CL-based "shadow level".
+/// Owns the support state shown in the scene and the CL-based "fidelity level".
 ///
 /// Two dimensions of support:
 ///   aid          conceptual aid (force / velocity / distance cues) on or off
@@ -25,10 +25,10 @@ public enum ExperimentGroup
 /// Group B can also reach the fourth combination, auto setup without aid
 /// (reported as AutoNoAidCode).
 ///
-/// Shadow level: the level the CL score maps to, computed in EVERY group with
+/// fidelity level: the level the CL score maps to, computed in EVERY group with
 /// the same thresholds and buffer. QuizManager uses it for the immediate-hard
 /// rule, so the challenge escalation rule is identical across groups. Only in
-/// group C does the shadow level also drive what the scene shows.
+/// group C does the fidelity level also drive what the scene shows.
 ///
 /// Kept from the previous version:
 ///   - multi-step evaluation, so a large CL jump lands on the right level;
@@ -56,13 +56,21 @@ public class FidelityManager : MonoBehaviour
 
     [Header("Manual Override (group C fallback)")]
     [Tooltip("Group C only: on = the level is set by the Wizard panel and the CL " +
-             "score no longer drives the scene. The shadow level keeps updating.")]
+             "score no longer drives the scene. The fidelity level keeps updating.")]
     public bool manualMode = false;
 
     [Header("Current State (Read Only)")]
+    [Tooltip("The level the scene is showing right now.")]
+    [SerializeField] private string displayedLevel = "L2";
+    [Tooltip("The level the current CL corresponds to, in real time. Moves up " +
+             "and down with CL in every group and is never reset or held. In " +
+             "group C the scene follows it upwards only.")]
+    [SerializeField] private string actualLevel = "L2";
     [SerializeField] private bool aidOn = false;
     [SerializeField] private bool lowFidelity = false;
-    [SerializeField] private int shadowLevel = MaxLevel;
+
+    // Level the current CL corresponds to (see actualLevel).
+    private int fidelityLevel = MaxLevel;
 
     [Header("Events")]
     [Tooltip("Invoked whenever aid or setup mode changes. The int is the display " +
@@ -85,6 +93,20 @@ public class FidelityManager : MonoBehaviour
     private string pendingSource = "";
 
     private float _lastCLScore = -1f;
+
+    // True during the pause after a correct answer: CL changes are ignored.
+    private bool frozen = false;
+
+    [Header("Question Start Hold")]
+    [Tooltip("Seconds at the start of every question during which the level is " +
+             "held at Level 2 and CL is ignored. When the hold ends, the current " +
+             "CL is evaluated straight away.")]
+    public float questionStartHoldSeconds = 2f;
+    private float holdUntil = -1f;
+
+    // Group C: the level the scene is allowed to be at within the current
+    // question. Only moves towards more support; back to Level 2 per question.
+    private int sceneLevel = MaxLevel;
     private ExperimentGroup _lastGroup;
 
     // -- Lifecycle ----------------------------------------------------------
@@ -94,7 +116,7 @@ public class FidelityManager : MonoBehaviour
         // Every group starts at Level 2: manual setup, no aid.
         aidOn = false;
         lowFidelity = false;
-        shadowLevel = MaxLevel;
+        fidelityLevel = MaxLevel;
         hasPending = false;
         manualMode = false;
         _lastGroup = group;
@@ -114,10 +136,19 @@ public class FidelityManager : MonoBehaviour
             OnGroupChanged();
         }
 
+        // The fidelity level follows every new CL value, always.
         if (!Mathf.Approximately(_lastCLScore, currentCLScore))
         {
             _lastCLScore = currentCLScore;
-            UpdateShadowLevel();
+            UpdateFidelityLevel();
+            UpdateSceneLevel();
+        }
+
+        // End of the question-start hold: let the scene catch up right away.
+        if (holdUntil > 0f && Time.time >= holdUntil)
+        {
+            holdUntil = -1f;
+            UpdateSceneLevel();
         }
 
         // Flush a queued change as soon as both hands are free.
@@ -126,16 +157,37 @@ public class FidelityManager : MonoBehaviour
             hasPending = false;
             ApplySupport(pendingAid, pendingLow, pendingSource);
         }
+
+        // Inspector read-outs.
+        displayedLevel = DescribeLevel(GetCurrentLevel());
+        actualLevel = DescribeLevel(fidelityLevel) + "   (CL " + currentCLScore.ToString("F0") + ")";
     }
 
-    // -- Shadow level (all groups) -------------------------------------------
+    /// <summary>Readable name of a level, for the Inspector and the Wizard panel.</summary>
+    public static string DescribeLevel(int code)
+    {
+        switch (code)
+        {
+            case 2: return "L2  manual setup, no aid";
+            case 1: return "L1  manual setup + aid";
+            case 0: return "L0  auto setup + aid";
+            default: return "Auto  auto setup, no aid";
+        }
+    }
 
-    private void UpdateShadowLevel()
+    // -- fidelity level (all groups): the real-time level -------------------------
+
+    /// <summary>
+    /// The level the current CL maps to, updated live in both directions.
+    /// Not affected by the one-way rule, the hold, the pause or question
+    /// changes. QuizManager reads it at Confirm for the immediate-hard rule.
+    /// </summary>
+    private void UpdateFidelityLevel()
     {
         if (config == null) return;
 
         // Iterate until stable so a large CL jump lands on the correct level.
-        int target = shadowLevel;
+        int target = fidelityLevel;
         for (int guard = 0; guard < 4; guard++)
         {
             int next = CalculateLevel(currentCLScore, target);
@@ -143,17 +195,33 @@ public class FidelityManager : MonoBehaviour
             target = next;
         }
 
-        if (target != shadowLevel)
+        if (target != fidelityLevel)
         {
-            int old = shadowLevel;
-            shadowLevel = target;
-            SessionLogger.Log("ShadowLevelChanged", "CL",
+            int old = fidelityLevel;
+            fidelityLevel = target;
+            SessionLogger.Log("FidelityLevelChanged", "CL",
                               SessionLogger.LevelName(old) + " -> " + SessionLogger.LevelName(target));
         }
+    }
 
-        // Only group C lets the CL score drive the scene.
-        if (group == ExperimentGroup.C_Adaptive && !manualMode)
-            RequestLevel(shadowLevel, "CL");
+    // -- Scene level (group C only) ----------------------------------------------
+
+    /// <summary>
+    /// Group C's scene follows the fidelity level, with three restrictions:
+    /// within a question support is only added, never removed; nothing changes
+    /// during the hold at the start of a question or the pause after a correct
+    /// answer; and each new question starts again at Level 2.
+    /// </summary>
+    private void UpdateSceneLevel()
+    {
+        if (group != ExperimentGroup.C_Adaptive || manualMode) return;
+        if (frozen || holdUntil > 0f) return;
+
+        if (fidelityLevel < sceneLevel)
+        {
+            sceneLevel = fidelityLevel;
+            RequestLevel(sceneLevel, "CL");
+        }
     }
 
     private int CalculateLevel(float cl, int current)
@@ -235,6 +303,7 @@ public class FidelityManager : MonoBehaviour
         manualMode = false;
         hasPending = false;
         ApplySupport(false, false, "GroupReset");
+        sceneLevel = MaxLevel;
         _lastCLScore = -1f; // re-evaluate on the next frame
         SessionLogger.Log("GroupSet", "Setup", "group=" + GetGroupLabel());
     }
@@ -313,8 +382,47 @@ public class FidelityManager : MonoBehaviour
         if (!manualMode) return;
         manualMode = false;
         SessionLogger.Log("ReturnToCLControl", "WizardOverride", "");
-        _lastCLScore = -1f; // force a re-evaluation on the next frame
+        // The scene goes to the level CL currently calls for, and continues
+        // one-way from there.
+        sceneLevel = fidelityLevel;
+        RequestLevel(sceneLevel, "CL");
     }
+
+    // -- Question boundaries (called by QuizManager) ---------------------------
+
+    /// <summary>
+    /// Every time a question appears (including the switch to its hard
+    /// version): the scene returns to Level 2 in groups B and C (group B's hints and automatic
+    /// setup are switched off; the participant can ask again). Group A is always
+    /// Level 2. Group C's scene then ignores CL for questionStartHoldSeconds.
+    /// The fidelity level is not reset: it always reflects the current CL.
+    /// </summary>
+    public void OnNewQuestion()
+    {
+        frozen = false;
+        hasPending = false;
+        sceneLevel = MaxLevel;
+
+        bool resetScene = group == ExperimentGroup.B_LearnerControl
+                       || (group == ExperimentGroup.C_Adaptive && !manualMode);
+        if (resetScene)
+            ApplySupport(false, false, "QuestionReset");
+
+        // Hold the scene at Level 2 for the first seconds of the question.
+        // (The fidelity level keeps following CL throughout.)
+        holdUntil = questionStartHoldSeconds > 0f ? Time.time + questionStartHoldSeconds : -1f;
+    }
+
+    /// <summary>
+    /// Freeze or unfreeze adaptation. QuizManager freezes it for the pause
+    /// after a correct answer, so CL changes in that pause have no effect.
+    /// </summary>
+    public void SetFrozen(bool value)
+    {
+        frozen = value;
+    }
+
+    public bool IsFrozen() { return frozen; }
 
     // Called by CognitiveLoadController.
     public void SetCLScore(float score)
@@ -331,7 +439,7 @@ public class FidelityManager : MonoBehaviour
     public int GetCurrentLevel() { return CodeOf(aidOn, lowFidelity); }
 
     /// <summary>The level the CL score maps to, in every group.</summary>
-    public int GetShadowLevel() { return shadowLevel; }
+    public int GetFidelityLevel() { return fidelityLevel; }
 
     public bool IsAidOn() { return aidOn; }
 

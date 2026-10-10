@@ -73,7 +73,10 @@ public class QuizManager : MonoBehaviour
     public GameObject selectionRing;
 
     [Header("Difficulty Upgrade Timing")]
-    public float upgradeDelaySeconds = 1.2f;
+    [Tooltip("After a correct answer the Next button shows \"...\" for this long " +
+             "before it can be pressed. CL changes are ignored during the pause. " +
+             "The automatic switch to a hard version waits the same time.")]
+    public float correctPauseSeconds = 2f;
 
     // -- Internal State ----------------------------------------
 
@@ -114,7 +117,11 @@ public class QuizManager : MonoBehaviour
     // Handle for the delayed normal->hard switch, so a Wizard-of-Oz jump can
     // cancel it. Otherwise a jump made during the 1.2 s delay would be
     // overridden a moment later by the pending switch.
-    private Coroutine immediateHardCoroutine;
+    private Coroutine immediateHardCoroutine;   // the pause after a correct answer
+
+    // Set when the immediate-hard rule fired: the next press of Next opens the
+    // hard version of THIS question instead of moving on.
+    private bool nextGoesToHard = false;
 
     // -- Unity Lifecycle ----------------------------------------
 
@@ -207,6 +214,11 @@ public class QuizManager : MonoBehaviour
 
     void DisplayQuestion(int index)
     {
+        // A new question (or the hard version of the same one) starts again at
+        // Level 2 (group B and C scenes).
+        if (fidelityManager != null) fidelityManager.OnNewQuestion();
+        nextGoesToHard = false;
+
         if (demoPlayButtonController != null) demoPlayButtonController.ForceStop();
         if (experimentConfigManager != null) experimentConfigManager.StopCurrentDemo();
         DifficultySetting d = GetCurrentDifficultySetting();
@@ -331,12 +343,12 @@ public class QuizManager : MonoBehaviour
                 hardPending[currentIndex] = true;
 
                 // Condition A (challenge escalation): first-attempt correct AND
-                // the CL score sat in the lowest band at the time. Uses the
-                // SHADOW level, which every group computes from CL with the same
-                // thresholds, so the rule is identical in groups A, B and C
-                // regardless of what support the scene is showing.
+                // the CL score is in the lowest band at the moment of Confirm.
+                // Uses the real-time fidelity level, which every group computes from
+                // CL with the same thresholds, so the rule is identical in
+                // groups A, B and C regardless of what the scene is showing.
                 bool clWasLowest = fidelityManager != null
-                    && fidelityManager.GetShadowLevel() == FidelityManager.MaxLevel;
+                    && fidelityManager.GetFidelityLevel() == FidelityManager.MaxLevel;
                 bool firstAttemptCorrect = !normalHadWrongAttempt[currentIndex];
                 triggerImmediateHard = clWasLowest && firstAttemptCorrect;
             }
@@ -351,18 +363,13 @@ public class QuizManager : MonoBehaviour
             ShowFeedback("CORRECT", Color.green);
             if (SFXManager.Instance != null) SFXManager.Instance.PlayCorrect();
 
-            if (triggerImmediateHard)
-            {
-                // The hard version follows automatically after a short pause.
-                // No "Next" in the meantime: the participant stays on this
-                // question until the switch has happened.
-                SetWaitingMode();
-                immediateHardCoroutine = StartCoroutine(DelayedImmediateHardSwitch(currentIndex));
-            }
-            else if (willFinish)
-                EnterFinishedState();
-            else
-                SetNextMode();
+            // Pause after every correct answer: "..." on the button and no
+            // adaptation for correctPauseSeconds, so the CL of this question
+            // cannot spill into the next one. Then either the hard version
+            // appears automatically, or Next / Finish becomes available.
+            SetWaitingMode();
+            if (fidelityManager != null) fidelityManager.SetFrozen(true);
+            immediateHardCoroutine = StartCoroutine(CorrectAnswerPause(currentIndex, triggerImmediateHard, willFinish));
         }
         else
         {
@@ -481,19 +488,27 @@ public class QuizManager : MonoBehaviour
 
     // -- Difficulty Flow ----------------------------------------
 
-    private IEnumerator DelayedImmediateHardSwitch(int fromIndex)
+    private IEnumerator CorrectAnswerPause(int fromIndex, bool switchToHard, bool willFinish)
     {
-        yield return new WaitForSeconds(upgradeDelaySeconds);
+        yield return new WaitForSeconds(correctPauseSeconds);
         immediateHardCoroutine = null;
 
-        // Safety net: only switch the question that triggered the switch.
+        if (!switchToHard)
+        {
+            // Adaptation stays frozen until the next question appears.
+            if (willFinish) EnterFinishedState();
+            else SetNextMode();
+            yield break;
+        }
+
+        // Safety net: only for the question that triggered the rule.
         if (currentIndex != fromIndex || currentDifficulty != "normal" || showingThankYou)
             yield break;
 
-        flowPhase = FlowPhase.ImmediateHardInterrupt;
-        currentDifficulty = "hard";
-        studentAnswers[currentIndex] = new List<int>();
-        DisplayQuestion(currentIndex);
+        // No automatic switch: Next appears as usual, and pressing it opens the
+        // hard version of this question (see NextQuestion).
+        nextGoesToHard = true;
+        SetNextMode();
     }
 
     private bool IsHardSwitchPending()
@@ -726,6 +741,17 @@ public class QuizManager : MonoBehaviour
     {
         CancelImmediateHardSwitch();
         FindFirstObjectByType<ResetManager>().ResetAll();
+
+        // Immediate-hard rule fired on this question: Next opens its hard version.
+        if (nextGoesToHard && currentDifficulty == "normal")
+        {
+            nextGoesToHard = false;
+            flowPhase = FlowPhase.ImmediateHardInterrupt;
+            currentDifficulty = "hard";
+            studentAnswers[currentIndex] = new List<int>();
+            DisplayQuestion(currentIndex);
+            return;
+        }
 
         if (flowPhase == FlowPhase.ImmediateHardInterrupt)
         {

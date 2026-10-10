@@ -149,12 +149,11 @@ public class WizardControlPanel : MonoBehaviour
         FidelityManager fm = fidelityManager;
 
         string s = "Group " + fm.GetGroupLabel() + "\n" +
-                   "Scene:  " + DescribeCode(fm.GetCurrentLevel()) +
+                   "Displayed level:  " + FidelityManager.DescribeLevel(fm.GetCurrentLevel()) +
                    (fm.manualMode ? "   [MANUAL OVERRIDE]" : "") + "\n" +
-                   "CL = " + fm.currentCLScore.ToString("F0") +
-                   "   shadow level = L" + fm.GetShadowLevel() +
-                   (fm.GetShadowLevel() == FidelityManager.MaxLevel
-                       ? "  (immediate hard possible)" : "");
+                   "Actual level:     " + FidelityManager.DescribeLevel(fm.GetFidelityLevel()) +
+                   "   CL = " + fm.currentCLScore.ToString("F0") +
+                   (fm.GetFidelityLevel() == FidelityManager.MaxLevel ? "   (hard-question rule possible)" : "");
         if (fm.HasPendingLevelChange())
             s += "\nChange queued - applies when the participant lets go";
         return s;

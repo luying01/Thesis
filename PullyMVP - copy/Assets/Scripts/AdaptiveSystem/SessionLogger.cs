@@ -219,6 +219,10 @@ public class SessionLogger : MonoBehaviour
     private void CountForSummary(string evt, string source)
     {
         if (current == null) return;
+        // A reset at a question boundary is logged as an event but is not a
+        // support change made during the question.
+        if (source == "QuestionReset") return;
+
         if (evt == "SupportChanged")
         {
             current.supportChanges++;

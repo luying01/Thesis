@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f019654ddc75d242a2ce1d0312c3ca8, type: 3}
   m_Name: FidelityConfig
   m_EditorClassIdentifier: 
-  toLevel2: 35
-  toLevel1: 58
-  toLevel0: 78
-  hysteresis: 10
+  boundary2to1: 25
+  boundary1to0: 50
+  buffer: 0
